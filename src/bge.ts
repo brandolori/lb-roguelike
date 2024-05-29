@@ -1,12 +1,17 @@
-type StateUpdater<T> = (state: T, input: Set<string>, deltaTime: number) => T
-type StateDrawer<T> = (state: T) => Drawable[]
+export type StateUpdater<T> = (context: GameContext, state: T, events: Set<string>, deltaTime: number) => T
+export type StateDrawer<T> = (state: T) => Drawable[]
 
-export const init = <T>(initialState: T, stateUpdater: StateUpdater<T>, stateDrawer: StateDrawer<T>) => {
+export type GameContext = {
+    requestTimer: (id: string, time: number) => void
+}
+
+export const init = <T>(canvas: HTMLCanvasElement, initialState: T, stateUpdater: StateUpdater<T>, stateDrawer: StateDrawer<T>) => {
 
     document.addEventListener("keydown", keyDownHandler, false)
     document.addEventListener("keyup", keyUpHandler, false)
 
-    const pressedKeys = new Set<string>()
+    const events = new Set<string>()
+    const inputs = new Set<string>()
 
     const keyboardDict = {
         "w": "move-up",
@@ -21,23 +26,27 @@ export const init = <T>(initialState: T, stateUpdater: StateUpdater<T>, stateDra
 
     function keyDownHandler(event: KeyboardEvent) {
         if (event.key in keyboardDict) {
-            pressedKeys.add(keyboardDict[event.key])
+            inputs.add(keyboardDict[event.key])
         }
     }
 
     function keyUpHandler(event: KeyboardEvent) {
         if (event.key in keyboardDict) {
-            pressedKeys.delete(keyboardDict[event.key])
+            inputs.delete(keyboardDict[event.key])
         }
     }
-
-    const canvas = document.getElementById('bge-canvas')! as HTMLCanvasElement
-    canvas.width = 640
-    canvas.height = 360
 
     let state = initialState
 
     let previousTimeStamp: number
+
+    const gameContext: GameContext = {
+        requestTimer: (id: string, time: number) => {
+            setTimeout(() => {
+                events.add(id)
+            }, time * 1000)
+        }
+    }
 
     const draw: FrameRequestCallback = (timeStamp) => {
 
@@ -47,7 +56,9 @@ export const init = <T>(initialState: T, stateUpdater: StateUpdater<T>, stateDra
         const elapsed = (timeStamp - previousTimeStamp) / 1000
         previousTimeStamp = timeStamp
 
-        state = stateUpdater(state, pressedKeys, elapsed)
+        inputs.forEach(ip => events.add(ip))
+        state = stateUpdater(gameContext, state, events, elapsed)
+        events.clear()
 
         const drawables = stateDrawer(state)
 

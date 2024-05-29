@@ -12,7 +12,7 @@ type Enemy = {
 }
 export type State = {
     playerPos: Vector2
+    canShoot: boolean
     bullets: Bullet[]
-    timeout: number
     enemies: Enemy[]
 }

@@ -13,47 +13,55 @@ const getNewBullet = (position: Vector2, baseSpeed: Vector2, direction: Vector2,
     return { position: Vector2.sum(position, Vector2.mult(direction, baseSize)), speed: Vector2.sum(Vector2.mult(direction, speed), baseSpeed) }
 }
 
-const stateUpdater = (state: State, input: Set<string>, deltaTime: number): State => {
-
-    console.log(deltaTime)
+const stateUpdater: BGE.StateUpdater<State> = (context: BGE.GameContext, state: State, events: Set<string>, deltaTime: number): State => {
 
     // unpack
-    const { playerPos, bullets, timeout } = state
+    const { playerPos, bullets, canShoot } = state
 
-    const horizontalOffset = (input.has("move-right") ? +playerSpeed : 0) + (input.has("move-left") ? -playerSpeed : 0)
-    const verticalOffset = (input.has("move-down") ? +playerSpeed : 0) + (input.has("move-up") ? -playerSpeed : 0)
-    const playerOffset = { x: horizontalOffset, y: verticalOffset }
+    // player movement
+    const playerOffset = {
+        x: (events.has("move-right") ? +playerSpeed : 0) + (events.has("move-left") ? -playerSpeed : 0),
+        y: (events.has("move-down") ? +playerSpeed : 0) + (events.has("move-up") ? -playerSpeed : 0)
+    }
     const playerDelta = Vector2.mult(playerOffset, deltaTime)
 
+    // bullet movement
     const movedBullets: Bullet[] = bullets.map(bu => ({ ...bu, position: Vector2.sum(bu.position, Vector2.mult(bu.speed, deltaTime)) }))
 
+    // player shooting
+    const shootCooldownOver = events.has("shoot-cooldown")
+    const canShootInFrame = shootCooldownOver || canShoot
     let addedBullets = []
+    let hasShot = false
 
-    if (timeout == 0) {
-        if (input.has("shoot-right")) {
+    if (canShoot) {
+        if (events.has("shoot-right")) {
             addedBullets.push(getNewBullet(playerPos, playerOffset, Vector2.right, bulletSpeed))
-        } else if (input.has("shoot-left")) {
+            hasShot = true
+        } else if (events.has("shoot-left")) {
             addedBullets.push(getNewBullet(playerPos, playerOffset, Vector2.left, bulletSpeed))
-        } else if (input.has("shoot-up")) {
+            hasShot = true
+        } else if (events.has("shoot-up")) {
             addedBullets.push(getNewBullet(playerPos, playerOffset, Vector2.up, bulletSpeed))
-        } else if (input.has("shoot-down")) {
+            hasShot = true
+        } else if (events.has("shoot-down")) {
             addedBullets.push(getNewBullet(playerPos, playerOffset, Vector2.down, bulletSpeed))
+            hasShot = true
         }
     }
 
-    const updatedTimeout = addedBullets.length > 0 ? 0.2 : timeout - deltaTime
-
-    // assemble
-    const newBullets = [...movedBullets, ...addedBullets]
-    const newPlayerPos = Vector2.sum(state.playerPos, playerDelta)
-    const newTimeout = Math.max(updatedTimeout, 0)
-
-    return {
-        playerPos: newPlayerPos,
-        bullets: newBullets,
-        timeout: newTimeout,
-        enemies: []
+    if (hasShot) {
+        context.requestTimer("shoot-cooldown", .2)
     }
+
+    // assemble next state
+    const nextState = {
+        playerPos: Vector2.sum(state.playerPos, playerDelta),
+        bullets: [...movedBullets, ...addedBullets],
+        enemies: [],
+        canShoot: canShootInFrame && !hasShot
+    }
+    return nextState
 }
 
 const stateDrawer = (state: State): Drawable[] => {
@@ -67,9 +75,14 @@ const initialState: State = {
         x: 10,
         y: 10
     },
+    canShoot: true,
     bullets: [],
-    timeout: 0,
     enemies: []
 }
 
-BGE.init(initialState, stateUpdater, stateDrawer)
+
+const canvas = document.getElementById('bge-canvas')! as HTMLCanvasElement
+canvas.width = 640
+canvas.height = 360
+
+BGE.init(canvas, initialState, stateUpdater, stateDrawer)
