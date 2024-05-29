@@ -1,22 +1,13 @@
-import { Vector2 } from "./bge";
-import { Drawable } from "./bge";
-import * as BGE from './bge';
+import { Bullet, State } from "./types"
+import { Vector2, Drawable } from "./bge"
+import * as BGE from './bge'
 import "./style.css"
 
 const playerSpeed = 67
 const bulletSpeed = 100
 const baseSize = 18
-
-type Bullet = {
-    position: Vector2
-    speed: Vector2
-}
-
-type State = {
-    playerPos: Vector2
-    bullets: Bullet[]
-    timeout: number
-}
+const playerColor = "000000"
+const enemyColor = "720714"
 
 const getNewBullet = (position: Vector2, baseSpeed: Vector2, direction: Vector2, speed: number): Bullet => {
     return { position: Vector2.sum(position, Vector2.mult(direction, baseSize)), speed: Vector2.sum(Vector2.mult(direction, speed), baseSpeed) }
@@ -60,14 +51,15 @@ const stateUpdater = (state: State, input: Set<string>, deltaTime: number): Stat
     return {
         playerPos: newPlayerPos,
         bullets: newBullets,
-        timeout: newTimeout
+        timeout: newTimeout,
+        enemies: []
     }
 }
 
 const stateDrawer = (state: State): Drawable[] => {
-    const bulletDrawables: Drawable[] = state.bullets.map(bu => ({ char: "•", color: "black", size: baseSize, x: bu.position.x, y: bu.position.y }))
+    const bulletDrawables: Drawable[] = state.bullets.map(bu => ({ char: "•", color: playerColor, size: baseSize, x: bu.position.x, y: bu.position.y }))
 
-    return [{ x: state.playerPos.x, y: state.playerPos.y, char: '@', size: baseSize, color: 'red' }, ...bulletDrawables]
+    return [{ x: state.playerPos.x, y: state.playerPos.y, char: '@', size: baseSize, color: playerColor }, ...bulletDrawables]
 }
 
 const initialState: State = {
@@ -76,7 +68,8 @@ const initialState: State = {
         y: 10
     },
     bullets: [],
-    timeout: 0
+    timeout: 0,
+    enemies: []
 }
 
 BGE.init(initialState, stateUpdater, stateDrawer)
