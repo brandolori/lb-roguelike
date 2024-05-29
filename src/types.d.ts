@@ -1,16 +1,20 @@
 import { Vector2 } from "./bge"
 
-export type Bullet = {
-    position: Vector2
+type BulletType = "normal" | "small" | "big"
+
+type Bullet = {
+    pos: Vector2
     speed: Vector2
+    type: BulletType
+    enemy: boolean
 }
-type EnemyType = "slime"
+type EnemyType = "slime" | "fast-slime" | "imp" | "rhino" | "turret"
 
 type Enemy = {
     pos: Vector2
     type: EnemyType
 }
-export type State = {
+type State = {
     playerPos: Vector2
     canShoot: boolean
     bullets: Bullet[]

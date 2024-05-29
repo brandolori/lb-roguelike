@@ -5,12 +5,12 @@ export type GameContext = {
     requestTimer: (id: string, time: number) => void
 }
 
-export const init = <T>(canvas: HTMLCanvasElement, initialState: T, stateUpdater: StateUpdater<T>, stateDrawer: StateDrawer<T>) => {
+export const init = <T>(canvas: HTMLCanvasElement, initialState: T, stateUpdater: StateUpdater<T>, stateDrawer: StateDrawer<T>, startingEvents: string[]) => {
 
     document.addEventListener("keydown", keyDownHandler, false)
     document.addEventListener("keyup", keyUpHandler, false)
 
-    const events = new Set<string>()
+    const events = new Set<string>(startingEvents)
     const inputs = new Set<string>()
 
     const keyboardDict = {
@@ -82,7 +82,7 @@ const drawCharactersOnCanvas = (canvas: HTMLCanvasElement, drawables: Drawable[]
         ctx.fillStyle = color
 
         // Imposta la dimensione del carattere e il font monospaziato
-        ctx.font = `${size}px courier new`
+        ctx.font = `bold ${size}px courier new`
 
         // Misura la larghezza del carattere
         const textMetrics = ctx.measureText(char)
@@ -90,7 +90,6 @@ const drawCharactersOnCanvas = (canvas: HTMLCanvasElement, drawables: Drawable[]
 
         // Approssimazione dell'altezza del carattere
         const textHeight = size // Un'approssimazione dell'altezza del testo
-
 
         // Calcola le coordinate in modo che il punto (x, y) sia al centro del carattere
         const centeredX = x - textWidth / 2
@@ -101,13 +100,24 @@ const drawCharactersOnCanvas = (canvas: HTMLCanvasElement, drawables: Drawable[]
     })
 }
 
-export const Vector2 = {
-    sum: (a: Vector2, b: Vector2): Vector2 => ({ x: a.x + b.x, y: a.y + b.y }),
-    mult: (a: Vector2, m: number): Vector2 => ({ x: a.x * m, y: a.y * m }),
-    right: { x: 1, y: 0 } as Vector2,
-    left: { x: -1, y: 0 } as Vector2,
-    up: { x: 0, y: -1 } as Vector2,
-    down: { x: 0, y: 1 } as Vector2,
+export const Vec2 = {
+    sum: (a: Vec2, b: Vec2): Vec2 => ({ x: a.x + b.x, y: a.y + b.y }),
+    mult: (a: Vec2, m: number): Vec2 => ({ x: a.x * m, y: a.y * m }),
+    sub: (a: Vec2, b: Vec2): Vec2 => ({ x: a.x - b.x, y: a.y - b.y }),
+    normalize: (v: Vec2): Vec2 => {
+        const length = Math.sqrt(v.x * v.x + v.y * v.y)
+        return length === 0 ? { x: 0, y: 0 } : { x: v.x / length, y: v.y / length }
+    },
+    distance: (a: Vec2, b: Vec2): number => {
+        const dx = b.x - a.x
+        const dy = b.y - a.y
+        return Math.sqrt(dx * dx + dy * dy)
+    },
+    right: { x: 1, y: 0 } as Vec2,
+    left: { x: -1, y: 0 } as Vec2,
+    up: { x: 0, y: -1 } as Vec2,
+    down: { x: 0, y: 1 } as Vec2,
+    zero: { x: 0, y: 0 } as Vec2,
 }
 
 export type Drawable = {
@@ -117,7 +127,7 @@ export type Drawable = {
     size: number
     color: string
 }
-export type Vector2 = {
+export type Vec2 = {
     x: number
     y: number
 };
