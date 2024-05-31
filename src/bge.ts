@@ -1,16 +1,17 @@
-export type StateUpdater<T> = (context: GameContext, state: T, events: Set<string>, deltaTime: number) => T
+export type TimerRequest = { id: string, time: number }
+export type StateUpdater<T> = (state: T, events: Set<string>, deltaTime: number) => { timers: TimerRequest[], state: T }
 export type StateDrawer<T> = (state: T) => Drawable[]
 
 export type GameContext = {
     requestTimer: (id: string, time: number) => void
 }
 
-export const init = <T>(canvas: HTMLCanvasElement, initialState: T, stateUpdater: StateUpdater<T>, stateDrawer: StateDrawer<T>, startingEvents: string[]) => {
+export const init = <T>(canvas: HTMLCanvasElement, initialState: T, stateUpdater: StateUpdater<T>, stateDrawer: StateDrawer<T>, startingEvents: TimerRequest[]) => {
 
     document.addEventListener("keydown", keyDownHandler, false)
     document.addEventListener("keyup", keyUpHandler, false)
 
-    const events = new Set<string>(startingEvents)
+    const events = new Set<string>()
     const inputs = new Set<string>()
 
     const keyboardDict = {
@@ -40,13 +41,13 @@ export const init = <T>(canvas: HTMLCanvasElement, initialState: T, stateUpdater
 
     let previousTimeStamp: number
 
-    const gameContext: GameContext = {
-        requestTimer: (id: string, time: number) => {
-            setTimeout(() => {
-                events.add(id)
-            }, time * 1000)
-        }
+    const requestTimer = (id: string, time: number) => {
+        setTimeout(() => {
+            events.add(id)
+        }, time * 1000)
     }
+
+    startingEvents.forEach(e => requestTimer(e.id, e.time))
 
     const draw: FrameRequestCallback = (timeStamp) => {
 
@@ -57,8 +58,11 @@ export const init = <T>(canvas: HTMLCanvasElement, initialState: T, stateUpdater
         previousTimeStamp = timeStamp
 
         inputs.forEach(ip => events.add(ip))
-        state = stateUpdater(gameContext, state, events, elapsed)
+        const { timers, state: newState } = stateUpdater(state, events, elapsed)
         events.clear()
+
+        state = newState
+        timers.forEach(tm => requestTimer(tm.id, tm.time))
 
         const drawables = stateDrawer(state)
 

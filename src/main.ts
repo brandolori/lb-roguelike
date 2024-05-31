@@ -1,5 +1,5 @@
 import { Bullet, BulletType, Enemy, EnemyType, State } from "./types"
-import { StateUpdater, GameContext, init, Vec2, Drawable } from './bge'
+import { StateUpdater, init, Vec2, Drawable, TimerRequest } from './bge'
 import "./style.css"
 
 const playerSpeed = 60
@@ -48,9 +48,10 @@ const getWithRandomChance = <T>(options: { option: T, chance: number }[]) => {
     return null // Nessuna opzione valida trovata
 }
 
-const stateUpdater: StateUpdater<State> = (context: GameContext, state: State, events: Set<string>, deltaTime: number): State => {
+const stateUpdater: StateUpdater<State> = (state: State, events: Set<string>, deltaTime: number) => {
     // unpack
     const { playerPos, bullets, canShoot, enemies } = state
+    const newTimers: TimerRequest[] = []
 
     // player movement
     const playerOffset = {
@@ -64,11 +65,8 @@ const stateUpdater: StateUpdater<State> = (context: GameContext, state: State, e
 
     // enemy movement
     const enemiesMoved: Enemy[] = enemies.map(en => {
-
         const playerDistance = Vec2.sub(playerPos, en.pos)
-
         const movementDirection = Vec2.normalize(playerDistance)
-
         const movement = (() => {
             switch (en.type) {
                 case "slime": return Vec2.mult(movementDirection, playerSpeed / 2 * deltaTime)
@@ -106,22 +104,30 @@ const stateUpdater: StateUpdater<State> = (context: GameContext, state: State, e
     }
 
     if (hasShot) {
-        context.requestTimer("shoot-cooldown", .2)
+        newTimers.push({ id: "shoot-cooldown", time: .2 })
     }
 
-    // bullet/enemy collision
+    // enemy shoot
+    const enemyBullets: Bullet[] = events.has("generic-rapid")
+        ? enemies
+            .filter(en => en.type == "turret")
+            .map(en => {
+                const direction = Vec2.normalize(Vec2.sub(playerPos, en.pos))
+                return getNewBullet(en.pos, Vec2.zero, direction, bulletSpeed, "normal", true)
+            })
+        : []
 
-    const bulletsMovedAdded = [...bulletsMoved, ...addedBullets]
+    // bullet/enemy collision
+    const bulletsMovedAdded = [...bulletsMoved, ...addedBullets, ...enemyBullets]
 
     const collisions = bulletsMovedAdded
+        .filter(bu => !bu.enemy)
         .flatMap(bu => enemiesMoved.map(en => ([bu, en])))
         .filter(co => Vec2.distance(co[0].pos, co[1].pos) <= baseSize / 2) as [Bullet, Enemy][]
 
     const uniqueCollisions = new Map(collisions)
-
     const bulletsCollided = new Set(uniqueCollisions.keys())
     const enemiesCollided = new Set(uniqueCollisions.values())
-
     const bulletsLeft = bulletsMovedAdded.filter(bu => !bulletsCollided.has(bu))
     const enemiesLeft = enemiesMoved.filter(en => !enemiesCollided.has(en))
 
@@ -134,18 +140,24 @@ const stateUpdater: StateUpdater<State> = (context: GameContext, state: State, e
         : []
 
     if (events.has("spawn-enemies")) {
-        context.requestTimer("spawn-enemies", 2)
+        newTimers.push({ id: "spawn-enemies", time: 2 })
     }
-    
+
+    if (events.has("generic-rapid")) {
+        newTimers.push({ id: "generic-rapid", time: .1 })
+    }
 
     // assemble next state
-    const nextState = {
+    const nextState: State = {
         playerPos: Vec2.sum(state.playerPos, playerDelta),
         bullets: bulletsLeft,
         enemies: [...enemiesLeft, ...spawnedEnemies],
         canShoot: canShootInFrame && !hasShot
     }
-    return nextState
+    return {
+        timers: newTimers,
+        state: nextState
+    }
 }
 
 const stateDrawer = (state: State): Drawable[] => {
@@ -194,4 +206,4 @@ const canvas = document.getElementById('bge-canvas')! as HTMLCanvasElement
 canvas.width = screenWidth
 canvas.height = screenHeight
 
-init(canvas, initialState, stateUpdater, stateDrawer, ["spawn-enemies"])
+init(canvas, initialState, stateUpdater, stateDrawer, [{ id: "spawn-enemies", time: 0 }, { id: "generic-rapid", time: .1 }])
