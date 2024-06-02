@@ -1,22 +1,29 @@
-import { Vector2 } from "./bge"
+import { Vec2 } from "./bge"
 
 type BulletType = "normal" | "small" | "big"
 
 type Bullet = {
-    pos: Vector2
-    speed: Vector2
+    pos: Vec2
+    speed: Vec2
     type: BulletType
     enemy: boolean
 }
 type EnemyType = "slime" | "fast-slime" | "imp" | "rhino" | "turret"
 
+type Obstacle = {
+    pos: Vec2
+    type: number
+}
+
 type Enemy = {
-    pos: Vector2
+    pos: Vec2
     type: EnemyType
+    state: string
 }
 type State = {
-    playerPos: Vector2
+    playerPos: Vec2
     canShoot: boolean
     bullets: Bullet[]
     enemies: Enemy[]
+    obstacles: Obstacle[]
 }

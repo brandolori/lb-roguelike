@@ -117,6 +117,7 @@ export const Vec2 = {
         const dy = b.y - a.y
         return Math.sqrt(dx * dx + dy * dy)
     },
+    squareCollision: (a: Vec2, b: Vec2, side: number) => Math.abs(a.x - b.x) < side / 2 && Math.abs(a.y - b.y) < side / 2,
     right: { x: 1, y: 0 } as Vec2,
     left: { x: -1, y: 0 } as Vec2,
     up: { x: 0, y: -1 } as Vec2,
