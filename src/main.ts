@@ -1,8 +1,8 @@
-import { Bullet, BulletType, Enemy, EnemyType, Obstacle, State } from "./types"
+import { Bullet, BulletType, Enemy, EnemyType, State } from "./types"
 import { StateUpdater, init, Vec2, TimerRequest } from './bge'
 import "./style.css"
 import { stateDrawer } from "./stateDrawer"
-import { getRandomRoom, getVec2sInTriangle } from "./rooms"
+import { getRandomRoom } from "./rooms"
 import { getWithRandomChance } from "./getWithRandomChance"
 import { baseSize, screenWidth, playerSpeed, bulletSpeed, screenHeight } from "./constants"
 
@@ -29,6 +29,27 @@ export const getEnemyChar = (type: EnemyType): string => {
     }
 }
 
+const tryMove = (startingPos: Vec2, movement: Vec2, occupiedPositions: Vec2[]): Vec2 => {
+    const testPos = (testing: Vec2) => occupiedPositions.every(ps => !Vec2.squareCollision(ps, testing, baseSize))
+
+    const fullMove = Vec2.sum(startingPos, movement)
+    if (testPos(fullMove)) {
+        return fullMove
+    }
+
+    const xMove: Vec2 = { x: startingPos.x + movement.x, y: startingPos.y }
+    if (testPos(xMove)) {
+        return xMove
+    }
+
+    const yMove: Vec2 = { x: startingPos.x, y: startingPos.y + movement.y }
+    if (testPos(yMove)) {
+        return yMove
+    }
+
+    return startingPos
+}
+
 const stateUpdater: StateUpdater<State> = (state: State, events: Set<string>, deltaTime: number) => {
     // unpack
     const { playerPos: oldPlayerPos, bullets: oldBullets, canShoot, enemies: oldEnemies, obstacles } = state
@@ -42,15 +63,13 @@ const stateUpdater: StateUpdater<State> = (state: State, events: Set<string>, de
         y: (events.has("move-down") ? +playerSpeed : 0) + (events.has("move-up") ? -playerSpeed : 0)
     }
     const playerDelta = Vec2.mult(playerOffset, deltaTime)
-    const newPlayerPos = Vec2.sum(oldPlayerPos, playerDelta)
 
     const occupiedPositions = [
         ...enemies.map(en => en.pos),
         ...obstacles.map(en => en.pos)
     ]
 
-    const newPosIsFree = occupiedPositions.every(ps => !Vec2.squareCollision(ps, newPlayerPos, baseSize))
-    const playerPos = newPosIsFree ? newPlayerPos : oldPlayerPos
+    const playerPos = tryMove(oldPlayerPos, playerDelta, occupiedPositions)
 
     // bullet movement
     bullets = bullets.map(bu => ({ ...bu, pos: Vec2.sum(bu.pos, Vec2.mult(bu.speed, deltaTime)) }))
@@ -67,19 +86,17 @@ const stateUpdater: StateUpdater<State> = (state: State, events: Set<string>, de
             }
         })()
 
-        const newPos = Vec2.sum(en.pos, movement)
-
         const occupiedPositions = [
             playerPos,
             ...enemies.filter(enemy => enemy != en).map(en => en.pos),
             ...obstacles.map(en => en.pos)
         ]
 
-        const newPosIsFree = occupiedPositions.every(ps => !Vec2.squareCollision(ps, newPos, baseSize))
+        const newPos = tryMove(en.pos, movement, occupiedPositions)
 
         return {
             ...en,
-            pos: newPosIsFree ? newPos : en.pos
+            pos: newPos
         }
     })
 
