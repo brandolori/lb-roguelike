@@ -12,13 +12,13 @@ type EnemyType = "slime" | "fast-slime" | "imp" | "rhino" | "turret"
 
 type Obstacle = {
     pos: Vec2
-    type: number
+    type: "wall" | "block"
 }
 
 type Enemy = {
     pos: Vec2
     type: EnemyType
-    state: string
+    state: "paused" | "idle" | "shooting"
 }
 type State = {
     playerPos: Vec2

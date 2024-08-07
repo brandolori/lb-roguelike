@@ -26,7 +26,7 @@ export const stateDrawer = (state: State): Drawable[] => {
     }))
 
     const obstacleDrawable: Drawable[] = state.obstacles.map(os => ({
-        char: "▧",
+        char: os.type == "wall" ? "▧" : "▥",
         color: playerColor,
         size: baseSize,
         ...os.pos

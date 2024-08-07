@@ -3,8 +3,8 @@ import { StateUpdater, init, Vec2, TimerRequest } from './bge'
 import "./style.css"
 import { stateDrawer } from "./stateDrawer"
 import { getRandomRoom } from "./rooms"
-import { getWithRandomChance } from "./getWithRandomChance"
 import { baseSize, screenWidth, playerSpeed, bulletSpeed, screenHeight } from "./constants"
+import { getRandomEnemies } from "./enemies"
 
 const getNewBullet = (position: Vec2, baseSpeed: Vec2, direction: Vec2, speed: number, type: BulletType, enemy: boolean): Bullet => ({
     pos: Vec2.sum(position, Vec2.mult(direction, baseSize / 2)),
@@ -76,6 +76,13 @@ const stateUpdater: StateUpdater<State> = (state: State, events: Set<string>, de
 
     // enemy movement
     enemies = enemies.map(en => {
+
+        if (en.state == "paused") {
+            return {
+                ...en
+            }
+        }
+
         const playerDistance = Vec2.sub(playerPos, en.pos)
         const movementDirection = Vec2.normalize(playerDistance)
         const movement = (() => {
@@ -99,6 +106,10 @@ const stateUpdater: StateUpdater<State> = (state: State, events: Set<string>, de
             pos: newPos
         }
     })
+
+    if (events.has("room-start-cooldown")) {
+        enemies = enemies.map(en => ({ ...en, state: "idle" }))
+    }
 
     // player shooting
     const shootCooldownOver = events.has("shoot-cooldown")
@@ -168,21 +179,6 @@ const stateUpdater: StateUpdater<State> = (state: State, events: Set<string>, de
 
     bullets = bullets.filter(bu => !wallCollisionsSet.has(bu))
 
-    // spawn enemies
-    const spawnedEnemies: Enemy[] = events.has("spawn-enemies")
-        ? [{
-            pos: { x: getRandom(screenWidth, playerPos.x), y: getRandom(screenHeight, playerPos.y) },
-            type: getWithRandomChance<EnemyType>([
-                { option: "slime", chance: 1 },
-                { option: "fast-slime", chance: 1 },
-                { option: "turret", chance: 1 }
-            ]),
-            state: "idle"
-        }]
-        : []
-
-    enemies = [...enemies, ...spawnedEnemies]
-
     if (events.has("spawn-enemies")) {
         newTimers.push({ id: "spawn-enemies", time: 2 })
     }
@@ -211,13 +207,16 @@ const canvas = document.getElementById('bge-canvas')! as HTMLCanvasElement
 canvas.width = screenWidth
 canvas.height = screenHeight
 
+const initialRoom = getRandomRoom()
+
 const initialState: State = {
     playerPos: { x: 36, y: 36 },
     canShoot: true,
     bullets: [],
-    enemies: [],
+    enemies: getRandomEnemies({ x: 36, y: 36 }, initialRoom.map(os => os.pos)),
     obstacles: getRandomRoom()
 }
 
+const startEvents = [{ id: "spawn-enemies", time: 0 }, { id: "generic-rapid", time: 0 }, { id: "generic-slow", time: 0 }, { id: "room-start-cooldown", time: 1 }]
 
-init(canvas, initialState, stateUpdater, stateDrawer, [{ id: "spawn-enemies", time: 0 }, { id: "generic-rapid", time: 0 }, { id: "generic-slow", time: 0 }])
+init(canvas, initialState, stateUpdater, stateDrawer, startEvents)
