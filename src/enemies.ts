@@ -37,6 +37,61 @@ export const getFreeRandomDirection = (starting: Vec2, obstacles: Vec2[]) => {
     }
 }
 
+const getSlime = (pos: Vec2): Enemy => ({
+    pos,
+    type: "slime",
+    state: "paused",
+    movementDirection: Vec2.zero,
+    symbol: Symbol(),
+    hurt: false,
+    hurtSymbol: Symbol(),
+    health: 3
+})
+
+const getFastSlime = (pos: Vec2): Enemy => ({
+    pos,
+    type: "fast-slime",
+    state: "paused",
+    movementDirection: Vec2.zero,
+    symbol: Symbol(),
+    hurt: false,
+    hurtSymbol: Symbol(),
+    health: 3
+})
+
+const getTurret = (pos: Vec2): Enemy => ({
+    pos,
+    type: "turret",
+    state: "paused",
+    movementDirection: Vec2.zero,
+    symbol: Symbol(),
+    hurt: false,
+    hurtSymbol: Symbol(),
+    health: 5
+})
+
+const getImp = (pos: Vec2): Enemy => ({
+    pos,
+    type: "imp",
+    state: "paused",
+    movementDirection: Vec2.zero,
+    symbol: Symbol(),
+    hurt: false,
+    hurtSymbol: Symbol(),
+    health: 5
+})
+
+const getRhino = (pos: Vec2): Enemy => ({
+    pos,
+    type: "rhino",
+    state: "paused",
+    movementDirection: Vec2.zero,
+    symbol: Symbol(),
+    hurt: false,
+    hurtSymbol: Symbol(),
+    health: 2
+})
+
 export const getRandomEnemies = (playerPos: Vec2, obstacles: Vec2[]): Enemy[] => {
 
     const positionPool = getValidPositions([playerPos, ...obstacles])
@@ -47,21 +102,14 @@ export const getRandomEnemies = (playerPos: Vec2, obstacles: Vec2[]): Enemy[] =>
 
         const randomPos = positionPool.splice(randomIndex, 1)[0]
 
-        return ({
-            pos: randomPos,
-            type: getWithRandomChance<EnemyType>([
-                { option: "slime", chance: 1 },
-                { option: "fast-slime", chance: 1 },
-                { option: "turret", chance: 1 },
-                { option: "imp", chance: 1 },
-                { option: "rhino", chance: 1 },
-            ]),
-            state: "paused",
-            movementDirection: Vec2.zero,
-            symbol: Symbol()
-        })
+        return getWithRandomChance<Enemy>([
+            { option: getSlime(randomPos), chance: 1 },
+            { option: getFastSlime(randomPos), chance: 1 },
+            { option: getTurret(randomPos), chance: 1 },
+            { option: getImp(randomPos), chance: 1 },
+            { option: getRhino(randomPos), chance: 1 },
+        ])
     })
-
 }
 
 const getValidPositions = (invalidPositions: Vec2[]): Vec2[] => {

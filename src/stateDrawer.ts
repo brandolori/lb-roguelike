@@ -1,7 +1,7 @@
 import { State } from "./types"
 import { Drawable } from './bge'
 import { getEnemyChar } from "./enemies"
-import { baseSize, playerColor, enemyColor } from "./constants"
+import { baseSize, playerColor, enemyColor, hurtColor } from "./constants"
 
 export const stateDrawer = (state: State): Drawable[] => {
     const playerDrawable = {
@@ -20,7 +20,7 @@ export const stateDrawer = (state: State): Drawable[] => {
 
     const enemiesDrawables: Drawable[] = state.enemies.map(en => ({
         char: getEnemyChar(en.type),
-        color: enemyColor,
+        color: en.hurt ? hurtColor : enemyColor,
         size: baseSize,
         ...en.pos
     }))

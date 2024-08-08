@@ -5,6 +5,7 @@ import { stateDrawer } from "./stateDrawer"
 import { getRandomRoom } from "./rooms"
 import { baseSize, screenWidth, playerSpeed, bulletSpeed, screenHeight } from "./constants"
 import { getFreeRandomDirection, getRandomEnemies } from "./enemies"
+import { tryMove } from "./tryMove"
 
 const getNewBullet = (position: Vec2, baseSpeed: Vec2, direction: Vec2, speed: number, type: BulletType, enemy: boolean): Bullet => ({
     pos: Vec2.sum(position, Vec2.mult(direction, baseSize / 2)),
@@ -12,34 +13,6 @@ const getNewBullet = (position: Vec2, baseSpeed: Vec2, direction: Vec2, speed: n
     type,
     enemy
 })
-
-const getRandom = (range: number, forbidden: number) => {
-    const value = Math.random() * screenWidth
-    return Math.abs(value - forbidden) > 3 * baseSize
-        ? value
-        : getRandom(range, forbidden)
-}
-
-const tryMove = (startingPos: Vec2, movement: Vec2, occupiedPositions: Vec2[]): Vec2 => {
-    const testPos = (testing: Vec2) => occupiedPositions.every(ps => !Vec2.squareCollision(ps, testing, baseSize))
-
-    const fullMove = Vec2.sum(startingPos, movement)
-    if (testPos(fullMove)) {
-        return fullMove
-    }
-
-    const xMove: Vec2 = { x: startingPos.x + movement.x, y: startingPos.y }
-    if (testPos(xMove)) {
-        return xMove
-    }
-
-    const yMove: Vec2 = { x: startingPos.x, y: startingPos.y + movement.y }
-    if (testPos(yMove)) {
-        return yMove
-    }
-
-    return startingPos
-}
 
 const stateUpdater: StateUpdater<State> = (state: State, events: Set<string | symbol>, deltaTime: number) => {
     // unpack
@@ -61,6 +34,32 @@ const stateUpdater: StateUpdater<State> = (state: State, events: Set<string | sy
     ]
 
     const playerPos = tryMove(oldPlayerPos, playerDelta, occupiedPositions)
+
+    // player shooting
+    const shootCooldownOver = events.has("shoot-cooldown")
+    const canShootInFrame = shootCooldownOver || canShoot
+    let addedBullets: Bullet[] = []
+    let hasShot = false
+
+    if (canShoot) {
+        if (events.has("shoot-right")) {
+            addedBullets.push(getNewBullet(playerPos, playerOffset, Vec2.right, bulletSpeed, "normal", false))
+            hasShot = true
+        } else if (events.has("shoot-left")) {
+            addedBullets.push(getNewBullet(playerPos, playerOffset, Vec2.left, bulletSpeed, "normal", false))
+            hasShot = true
+        } else if (events.has("shoot-up")) {
+            addedBullets.push(getNewBullet(playerPos, playerOffset, Vec2.up, bulletSpeed, "normal", false))
+            hasShot = true
+        } else if (events.has("shoot-down")) {
+            addedBullets.push(getNewBullet(playerPos, playerOffset, Vec2.down, bulletSpeed, "normal", false))
+            hasShot = true
+        }
+    }
+
+    if (hasShot) {
+        newTimers.push({ id: "shoot-cooldown", time: .2 })
+    }
 
     // bullet movement
     bullets = bullets.map(bu => ({ ...bu, pos: Vec2.sum(bu.pos, Vec2.mult(bu.speed, deltaTime)) }))
@@ -92,7 +91,7 @@ const stateUpdater: StateUpdater<State> = (state: State, events: Set<string | sy
             switch (en.type) {
                 case "slime": return Vec2.mult(movementDirection, playerSpeed / 2 * deltaTime)
                 case "fast-slime": return Vec2.mult(movementDirection, playerSpeed * deltaTime)
-                case "imp": return Vec2.mult(movementDirection, playerSpeed / 2 * deltaTime)
+                case "imp": return Vec2.mult(movementDirection, playerSpeed * deltaTime)
                 case "rhino": return Vec2.mult(movementDirection, playerSpeed * 3 * deltaTime)
                 default: return Vec2.zero
             }
@@ -112,36 +111,7 @@ const stateUpdater: StateUpdater<State> = (state: State, events: Set<string | sy
         }
     })
 
-    if (events.has("room-start-cooldown")) {
-        enemies = enemies.map(en => ({ ...en, state: "idle" }))
-        enemies.filter(en => en.type == "imp" || en.type == "turret" || en.type == "rhino").forEach(en => newTimers.push({ id: en.symbol, time: Math.random() * 4 }))
-    }
-
-    // player shooting
-    const shootCooldownOver = events.has("shoot-cooldown")
-    const canShootInFrame = shootCooldownOver || canShoot
-    let addedBullets: Bullet[] = []
-    let hasShot = false
-
-    if (canShoot) {
-        if (events.has("shoot-right")) {
-            addedBullets.push(getNewBullet(playerPos, playerOffset, Vec2.right, bulletSpeed, "normal", false))
-            hasShot = true
-        } else if (events.has("shoot-left")) {
-            addedBullets.push(getNewBullet(playerPos, playerOffset, Vec2.left, bulletSpeed, "normal", false))
-            hasShot = true
-        } else if (events.has("shoot-up")) {
-            addedBullets.push(getNewBullet(playerPos, playerOffset, Vec2.up, bulletSpeed, "normal", false))
-            hasShot = true
-        } else if (events.has("shoot-down")) {
-            addedBullets.push(getNewBullet(playerPos, playerOffset, Vec2.down, bulletSpeed, "normal", false))
-            hasShot = true
-        }
-    }
-
-    if (hasShot) {
-        newTimers.push({ id: "shoot-cooldown", time: .2 })
-    }
+    enemies = enemies.map(en => ({ ...en, hurt: en.hurt && events.has(en.hurtSymbol) ? false : en.hurt }))
 
     // turret
     enemies = enemies.map(en => {
@@ -211,7 +181,21 @@ const stateUpdater: StateUpdater<State> = (state: State, events: Set<string | sy
     const enemiesCollided = new Set(uniqueCollisions.values())
 
     bullets = bullets.filter(bu => !bulletsCollided.has(bu))
-    enemies = enemies.filter(en => !enemiesCollided.has(en))
+    const enemiesNotCollided = enemies.filter(en => !enemiesCollided.has(en))
+    const enemiesHurt: Enemy[] = [...enemiesCollided].map(en => {
+
+        if (!en.hurt) {
+            newTimers.push({ id: en.hurtSymbol, time: .125 })
+        }
+
+        return ({
+            ...en,
+            hurt: true,
+            health: en.health - 1
+        })
+    }).filter(en => en.health > 0)
+
+    enemies = [...enemiesNotCollided, ...enemiesHurt]
 
     // bullet/wall collisions
     const wallCollisions = bullets
@@ -223,21 +207,25 @@ const stateUpdater: StateUpdater<State> = (state: State, events: Set<string | sy
 
     bullets = bullets.filter(bu => !wallCollisionsSet.has(bu))
 
+    // process events
     if (events.has("generic-rapid")) {
         newTimers.push({ id: "generic-rapid", time: .5 })
     }
+    if (events.has("room-start-cooldown")) {
+        enemies = enemies.map(en => ({ ...en, state: "idle" }))
+        enemies.filter(en => en.type == "imp" || en.type == "turret" || en.type == "rhino").forEach(en => newTimers.push({ id: en.symbol, time: Math.random() * 4 }))
+    }
 
     // assemble next state
-    const nextState: State = {
-        playerPos: playerPos,
-        bullets: bullets,
-        enemies: enemies,
-        canShoot: canShootInFrame && !hasShot,
-        obstacles
-    }
     return {
         timers: newTimers,
-        state: nextState
+        state: {
+            playerPos: playerPos,
+            bullets: bullets,
+            enemies: enemies,
+            canShoot: canShootInFrame && !hasShot,
+            obstacles
+        }
     }
 }
 
