@@ -1,7 +1,7 @@
 import { Vec2 } from "./bge"
 import { screenHeight, baseSize, screenWidth } from "./constants"
 import { getWithRandomChance } from "./getWithRandomChance"
-import { Obstacle } from "./types"
+import { Obstacle, ObstacleType } from "./types"
 
 export function getVec2sInTriangle(p1: Vec2, p2: Vec2, p3: Vec2): Vec2[] {
     const Vec2s: Vec2[] = []
@@ -114,7 +114,7 @@ const getRoomE = (): Vec2[] => {
     ...quad3]
 }
 
-export const getRandomRoom = (): Obstacle[] => {
+export const getRandomRoom = (wallType: ObstacleType): Obstacle[] => {
     return getWithRandomChance<Vec2[]>([
         {
             chance: 1,
@@ -153,6 +153,6 @@ export const getRandomRoom = (): Obstacle[] => {
             option: flipX(getRoomE(), { x: screenWidth, y: screenHeight })
         },
     ]).map(v2 => ({ pos: v2, type: "block" } as Obstacle))
-        .concat(getWalls().map(v2 => ({ pos: v2, type: "wall" } as Obstacle)))
+        .concat(getWalls().map(v2 => ({ pos: v2, type: wallType } as Obstacle)))
 
 }

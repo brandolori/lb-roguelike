@@ -6,6 +6,13 @@ export type GameContext = {
     requestTimer: (id: string, time: number) => void
 }
 
+export const pick = <T>(data: T[]) => {
+    const randomIndex = Math.floor(Math.random() * data.length)
+    const item = data[randomIndex]
+
+    return item
+}
+
 export const init = <T>(canvas: HTMLCanvasElement, initialState: T, stateUpdater: StateUpdater<T>, stateDrawer: StateDrawer<T>, startingEvents: TimerRequest[]) => {
 
     document.addEventListener("keydown", keyDownHandler, false)

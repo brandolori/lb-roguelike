@@ -1,30 +1,6 @@
-import { Vec2 } from "./bge"
+import { Vec2, pick } from "./bge"
 import { baseSize, screenHeight, screenWidth } from "./constants"
-import { getWithRandomChance } from "./getWithRandomChance"
-import { Enemy, EnemyType } from "./types"
-
-const difficulties: { type: EnemyType, difficulty: number }[] = [
-    {
-        type: "slime",
-        difficulty: 1
-    },
-    {
-        type: "fast-slime",
-        difficulty: 2
-    },
-    {
-        type: "turret",
-        difficulty: 3
-    },
-    {
-        type: "imp",
-        difficulty: 4
-    },
-    {
-        type: "rhino",
-        difficulty: 4
-    }
-]
+import { Enemy, EnemyData, EnemyType } from "./types"
 
 export const getFreeRandomDirection = (starting: Vec2, obstacles: Vec2[]) => {
     for (let index = 0; index < 10; index++) {
@@ -45,7 +21,7 @@ const getSlime = (pos: Vec2): Enemy => ({
     symbol: Symbol(),
     hurt: false,
     hurtSymbol: Symbol(),
-    health: 3
+    health: 6
 })
 
 const getFastSlime = (pos: Vec2): Enemy => ({
@@ -56,7 +32,7 @@ const getFastSlime = (pos: Vec2): Enemy => ({
     symbol: Symbol(),
     hurt: false,
     hurtSymbol: Symbol(),
-    health: 3
+    health: 6
 })
 
 const getTurret = (pos: Vec2): Enemy => ({
@@ -67,7 +43,7 @@ const getTurret = (pos: Vec2): Enemy => ({
     symbol: Symbol(),
     hurt: false,
     hurtSymbol: Symbol(),
-    health: 5
+    health: 10
 })
 
 const getImp = (pos: Vec2): Enemy => ({
@@ -78,7 +54,7 @@ const getImp = (pos: Vec2): Enemy => ({
     symbol: Symbol(),
     hurt: false,
     hurtSymbol: Symbol(),
-    health: 5
+    health: 10
 })
 
 const getRhino = (pos: Vec2): Enemy => ({
@@ -89,26 +65,59 @@ const getRhino = (pos: Vec2): Enemy => ({
     symbol: Symbol(),
     hurt: false,
     hurtSymbol: Symbol(),
-    health: 2
+    health: 4
 })
 
-export const getRandomEnemies = (playerPos: Vec2, obstacles: Vec2[]): Enemy[] => {
+const difficulties: EnemyData[] = [
+    {
+        type: "slime",
+        difficulty: 1,
+        constructor: getSlime
+    },
+    {
+        type: "fast-slime",
+        difficulty: 2,
+        constructor: getFastSlime
+    },
+    {
+        type: "turret",
+        difficulty: 3,
+        constructor: getTurret
+    },
+    {
+        type: "imp",
+        difficulty: 3,
+        constructor: getImp
+    },
+    {
+        type: "rhino",
+        difficulty: 3,
+        constructor: getRhino
+    }
+]
 
-    const positionPool = getValidPositions([playerPos, ...obstacles])
+export const getRandomEnemies = (playerPos: Vec2, obstacles: Vec2[], enemyTypes: EnemyType[], difficulty: number): Enemy[] => {
 
-    return [...Array(10).keys()].map(() => {
+    const types = difficulties.filter(en => enemyTypes.includes(en.type))
+    let positionPool = getValidPositions([playerPos, ...obstacles])
 
-        const randomIndex = Math.floor(Math.random() * positionPool.length)
+    let remainingDifficulty = difficulty
+    const toSpawn: EnemyData[] = []
 
-        const randomPos = positionPool.splice(randomIndex, 1)[0]
+    while (remainingDifficulty > 0) {
+        const item = pick(types)
 
-        return getWithRandomChance<Enemy>([
-            { option: getSlime(randomPos), chance: 1 },
-            { option: getFastSlime(randomPos), chance: 1 },
-            { option: getTurret(randomPos), chance: 1 },
-            { option: getImp(randomPos), chance: 1 },
-            { option: getRhino(randomPos), chance: 1 },
-        ])
+        remainingDifficulty -= item.difficulty
+        toSpawn.push(item)
+    }
+
+    return toSpawn.map(en => {
+
+        const randomPos = pick(positionPool)
+
+        positionPool = positionPool.filter(el => el != randomPos)
+
+        return en.constructor(randomPos)
     })
 }
 
@@ -122,15 +131,4 @@ const getValidPositions = (invalidPositions: Vec2[]): Vec2[] => {
     const startingPositions: Vec2[] = columns.flatMap(col => rows.map(row => ({ x: col, y: row }))).map(pos => Vec2.mult(pos, baseSize))
 
     return startingPositions.filter(pos => invalidPositions.every(inv => !Vec2.squareCollision(pos, inv, baseSize)))
-}
-
-export const getEnemyChar = (type: EnemyType): string => {
-    switch (type) {
-        case "slime": return "ç"
-        case "fast-slime": return "Ç"
-        case "turret": return "¡"
-        case "imp": return "£"
-        case "rhino": return "§"
-        default: return "?"
-    }
 }

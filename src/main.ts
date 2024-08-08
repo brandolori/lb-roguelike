@@ -1,11 +1,11 @@
-import { Bullet, BulletType, Enemy, State } from "./types"
+import { Bullet, BulletType, Drop, Enemy, State } from "./types"
 import { StateUpdater, init, Vec2, TimerRequest } from './bge'
 import "./style.css"
 import { stateDrawer } from "./stateDrawer"
-import { getRandomRoom } from "./rooms"
-import { baseSize, screenWidth, playerSpeed, bulletSpeed, screenHeight } from "./constants"
-import { getFreeRandomDirection, getRandomEnemies } from "./enemies"
+import { baseSize, screenWidth, playerSpeed, bulletSpeed, screenHeight, roomsInLevel, startPos } from "./constants"
+import { getFreeRandomDirection } from "./enemies"
 import { tryMove } from "./tryMove"
+import { generateRoom } from "./levels"
 
 const getNewBullet = (position: Vec2, baseSpeed: Vec2, direction: Vec2, speed: number, type: BulletType, enemy: boolean): Bullet => ({
     pos: Vec2.sum(position, Vec2.mult(direction, baseSize / 2)),
@@ -16,10 +16,14 @@ const getNewBullet = (position: Vec2, baseSpeed: Vec2, direction: Vec2, speed: n
 
 const stateUpdater: StateUpdater<State> = (state: State, events: Set<string | symbol>, deltaTime: number) => {
     // unpack
-    const { playerPos: oldPlayerPos, bullets: oldBullets, canShoot, enemies: oldEnemies, obstacles } = state
+    const { canShoot, obstacles, roomIndex, levelIndex } = state
+
+    const playerState = { ...state.playerState }
+    let enemies = [...state.enemies]
+    let bullets = [...state.bullets]
+    let drops = [...state.drops]
+
     const newTimers: TimerRequest[] = []
-    let enemies = [...oldEnemies]
-    let bullets = [...oldBullets]
 
     // player movement
     const playerOffset = {
@@ -33,7 +37,7 @@ const stateUpdater: StateUpdater<State> = (state: State, events: Set<string | sy
         ...obstacles.map(en => en.pos)
     ]
 
-    const playerPos = tryMove(oldPlayerPos, playerDelta, occupiedPositions)
+    playerState.pos = tryMove(playerState.pos, playerDelta, occupiedPositions)
 
     // player shooting
     const shootCooldownOver = events.has("shoot-cooldown")
@@ -43,16 +47,16 @@ const stateUpdater: StateUpdater<State> = (state: State, events: Set<string | sy
 
     if (canShoot) {
         if (events.has("shoot-right")) {
-            addedBullets.push(getNewBullet(playerPos, playerOffset, Vec2.right, bulletSpeed, "normal", false))
+            addedBullets.push(getNewBullet(playerState.pos, playerOffset, Vec2.right, bulletSpeed, "normal", false))
             hasShot = true
         } else if (events.has("shoot-left")) {
-            addedBullets.push(getNewBullet(playerPos, playerOffset, Vec2.left, bulletSpeed, "normal", false))
+            addedBullets.push(getNewBullet(playerState.pos, playerOffset, Vec2.left, bulletSpeed, "normal", false))
             hasShot = true
         } else if (events.has("shoot-up")) {
-            addedBullets.push(getNewBullet(playerPos, playerOffset, Vec2.up, bulletSpeed, "normal", false))
+            addedBullets.push(getNewBullet(playerState.pos, playerOffset, Vec2.up, bulletSpeed, "normal", false))
             hasShot = true
         } else if (events.has("shoot-down")) {
-            addedBullets.push(getNewBullet(playerPos, playerOffset, Vec2.down, bulletSpeed, "normal", false))
+            addedBullets.push(getNewBullet(playerState.pos, playerOffset, Vec2.down, bulletSpeed, "normal", false))
             hasShot = true
         }
     }
@@ -75,7 +79,7 @@ const stateUpdater: StateUpdater<State> = (state: State, events: Set<string | sy
             return en
         }
 
-        const playerDistance = Vec2.sub(playerPos, en.pos)
+        const playerDistance = Vec2.sub(playerState.pos, en.pos)
         const movementDirection = (() => {
             switch (en.type) {
                 case "slime":
@@ -98,7 +102,7 @@ const stateUpdater: StateUpdater<State> = (state: State, events: Set<string | sy
         })()
 
         const occupiedPositions = [
-            playerPos,
+            playerState.pos,
             ...enemies.filter(enemy => enemy != en).map(en => en.pos),
             ...obstacles.map(en => en.pos)
         ]
@@ -136,7 +140,7 @@ const stateUpdater: StateUpdater<State> = (state: State, events: Set<string | sy
         return {
             ...en,
             state: en.state == "moving" ? "idle" : "moving",
-            movementDirection: Vec2.normalize(Vec2.sub(playerPos, en.pos))
+            movementDirection: Vec2.normalize(Vec2.sub(playerState.pos, en.pos))
         }
     })
 
@@ -146,7 +150,7 @@ const stateUpdater: StateUpdater<State> = (state: State, events: Set<string | sy
             return en
         }
 
-        newTimers.push({ id: en.symbol, time: Math.random() * 2 + 1 })
+        newTimers.push({ id: en.symbol, time: en.state == "idle" ? Math.random() + 1 : 1 })
         return {
             ...en,
             state: en.state == "moving" ? "idle" : "moving",
@@ -158,13 +162,13 @@ const stateUpdater: StateUpdater<State> = (state: State, events: Set<string | sy
         ? enemies
             .filter(en => en.type == "turret" && en.state == "shooting")
             .map(en => {
-                const direction = Vec2.normalize(Vec2.sub(playerPos, en.pos))
+                const direction = Vec2.normalize(Vec2.sub(playerState.pos, en.pos))
                 return getNewBullet(en.pos, Vec2.zero, direction, bulletSpeed, "normal", true)
             })
         : []
 
     const impBullets: Bullet[] = enemies.filter(en => en.type == "imp" && en.state == "idle" && events.has(en.symbol)).map(en => {
-        const direction = Vec2.normalize(Vec2.sub(playerPos, en.pos))
+        const direction = Vec2.normalize(Vec2.sub(playerState.pos, en.pos))
         return getNewBullet(en.pos, Vec2.zero, direction, bulletSpeed, "normal", true)
     })
 
@@ -193,9 +197,15 @@ const stateUpdater: StateUpdater<State> = (state: State, events: Set<string | sy
             hurt: true,
             health: en.health - 1
         })
-    }).filter(en => en.health > 0)
+    })
 
-    enemies = [...enemiesNotCollided, ...enemiesHurt]
+    const survivedEnemies = enemiesHurt.filter(en => en.health > 0)
+
+    const newDrops: Drop[] = enemiesHurt.filter(en => en.health <= 0).map(en => ({ pos: en.pos, type: "big-gun" }))
+
+    drops.push(...newDrops)
+
+    enemies = [...enemiesNotCollided, ...survivedEnemies]
 
     // bullet/wall collisions
     const wallCollisions = bullets
@@ -207,6 +217,29 @@ const stateUpdater: StateUpdater<State> = (state: State, events: Set<string | sy
 
     bullets = bullets.filter(bu => !wallCollisionsSet.has(bu))
 
+    // bullet/player collisions
+    const playerCollisions = bullets
+        .filter(bu => bu.enemy)
+        .filter(bu => Vec2.squareCollision(bu.pos, playerState.pos, baseSize))
+
+    const playerCollisionsSet = new Set<Bullet>(playerCollisions)
+    bullets = bullets.filter(bu => !playerCollisionsSet.has(bu))
+
+    // enemy/player collisions
+    const enemyPlayerCollisions = enemies
+        .filter(en => Vec2.squareCollision(en.pos, playerState.pos, baseSize + 1))
+
+    // player damage
+    if ((playerCollisions.length > 0 || enemyPlayerCollisions.length > 0) && !playerState.hurt) {
+        playerState.health -= 25
+        newTimers.push({ id: "hurt-cooldown", time: .25 })
+        playerState.hurt = true
+
+        if (playerState.health < 1) {
+            location.reload()
+        }
+    }
+
     // process events
     if (events.has("generic-rapid")) {
         newTimers.push({ id: "generic-rapid", time: .5 })
@@ -215,16 +248,35 @@ const stateUpdater: StateUpdater<State> = (state: State, events: Set<string | sy
         enemies = enemies.map(en => ({ ...en, state: "idle" }))
         enemies.filter(en => en.type == "imp" || en.type == "turret" || en.type == "rhino").forEach(en => newTimers.push({ id: en.symbol, time: Math.random() * 4 }))
     }
+    if (events.has("hurt-cooldown")) {
+        playerState.hurt = false
+    }
+
+    if (enemies.length == 0) {
+        obstacles.push({ pos: Vec2.mult({ x: 13.5, y: 14.5 }, baseSize), type: "door" })
+    }
+
+    // move to next room
+    if (Vec2.squareCollision(playerState.pos, obstacles.find(os => os.type == "door")?.pos ?? Vec2.zero, baseSize * 2)) {
+
+        const newState = generateRoom((roomIndex + 1) % roomsInLevel, roomIndex + 1 == roomsInLevel ? levelIndex + 1 : levelIndex, playerState)
+        newTimers.push({ id: "room-start-cooldown", time: 1 })
+        return {
+            timers: newTimers,
+            state: newState
+        }
+    }
 
     // assemble next state
     return {
         timers: newTimers,
         state: {
-            playerPos: playerPos,
+            ...state,
+            playerState,
             bullets: bullets,
             enemies: enemies,
+            drops,
             canShoot: canShootInFrame && !hasShot,
-            obstacles
         }
     }
 }
@@ -233,15 +285,7 @@ const canvas = document.getElementById('bge-canvas')! as HTMLCanvasElement
 canvas.width = screenWidth
 canvas.height = screenHeight
 
-const initialRoom = getRandomRoom()
-
-const initialState: State = {
-    playerPos: { x: 36, y: 36 },
-    canShoot: true,
-    bullets: [],
-    enemies: getRandomEnemies({ x: 36, y: 36 }, initialRoom.map(os => os.pos)),
-    obstacles: initialRoom
-}
+const initialState = generateRoom(0, 0, { health: 100, pos: startPos, hurt: false, weapon: "none", weaponHealth: 100 })
 
 const startEvents = [{ id: "generic-rapid", time: 0 }, { id: "room-start-cooldown", time: 1 }]
 
