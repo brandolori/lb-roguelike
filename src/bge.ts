@@ -1,5 +1,5 @@
-export type TimerRequest = { id: string, time: number }
-export type StateUpdater<T> = (state: T, events: Set<string>, deltaTime: number) => { timers: TimerRequest[], state: T }
+export type TimerRequest = { id: string | symbol, time: number }
+export type StateUpdater<T> = (state: T, events: Set<string | symbol>, deltaTime: number) => { timers: TimerRequest[], state: T }
 export type StateDrawer<T> = (state: T) => Drawable[]
 
 export type GameContext = {
@@ -11,8 +11,8 @@ export const init = <T>(canvas: HTMLCanvasElement, initialState: T, stateUpdater
     document.addEventListener("keydown", keyDownHandler, false)
     document.addEventListener("keyup", keyUpHandler, false)
 
-    const events = new Set<string>()
-    const inputs = new Set<string>()
+    const events = new Set<string | symbol>()
+    const inputs = new Set<string | symbol>()
 
     const keyboardDict = {
         "w": "move-up",
@@ -41,7 +41,7 @@ export const init = <T>(canvas: HTMLCanvasElement, initialState: T, stateUpdater
 
     let previousTimeStamp: number
 
-    const requestTimer = (id: string, time: number) => {
+    const requestTimer = (id: string | symbol, time: number) => {
         setTimeout(() => {
             events.add(id)
         }, time * 1000)
@@ -117,12 +117,13 @@ export const Vec2 = {
         const dy = b.y - a.y
         return Math.sqrt(dx * dx + dy * dy)
     },
-    squareCollision: (a: Vec2, b: Vec2, side: number) => Math.abs(a.x - b.x) < side / 2 && Math.abs(a.y - b.y) < side / 2,
+    squareCollision: (a: Vec2, b: Vec2, side: number) => Math.abs(a.x - b.x) <= side / 2 && Math.abs(a.y - b.y) <= side / 2,
     right: { x: 1, y: 0 } as Vec2,
     left: { x: -1, y: 0 } as Vec2,
     up: { x: 0, y: -1 } as Vec2,
     down: { x: 0, y: 1 } as Vec2,
     zero: { x: 0, y: 0 } as Vec2,
+    fromAngle: (amplitude: number): Vec2 => ({ x: Math.cos(amplitude), y: Math.sin(amplitude) })
 }
 
 export type Drawable = {

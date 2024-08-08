@@ -8,17 +8,20 @@ type Bullet = {
     type: BulletType
     enemy: boolean
 }
-type EnemyType = "slime" | "fast-slime" | "imp" | "rhino" | "turret"
 
 type Obstacle = {
     pos: Vec2
     type: "wall" | "block"
 }
 
+type EnemyType = "slime" | "fast-slime" | "imp" | "rhino" | "turret"
+
 type Enemy = {
     pos: Vec2
     type: EnemyType
-    state: "paused" | "idle" | "shooting"
+    state: "paused" | "idle" | "shooting" | "moving"
+    symbol: symbol
+    movementDirection: Vec2
 }
 type State = {
     playerPos: Vec2

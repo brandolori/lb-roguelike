@@ -1,6 +1,6 @@
 import { State } from "./types"
 import { Drawable } from './bge'
-import { getEnemyChar } from "./main"
+import { getEnemyChar } from "./enemies"
 import { baseSize, playerColor, enemyColor } from "./constants"
 
 export const stateDrawer = (state: State): Drawable[] => {
