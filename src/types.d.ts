@@ -1,6 +1,6 @@
 import { Vec2 } from "./bge"
 
-type BulletType = "normal" | "small" | "big"
+type BulletType = "normal" | "small" | "big" | "shotgun"
 
 type Bullet = {
     pos: Vec2

@@ -1,4 +1,4 @@
-import { EnemyType, ObstacleType, State, WeaponType } from "./types"
+import { BulletType, EnemyType, ObstacleType, State, WeaponType } from "./types"
 import { Drawable } from './bge'
 import { baseSize, playerColor, enemyColor, hurtColor, dropColor } from "./constants"
 
@@ -28,6 +28,13 @@ const getEnemyChar = (type: EnemyType): string => {
     }
 }
 
+const bulletSizeMap: Map<BulletType, number> = new Map([
+    ["big", 1.5],
+    ["normal", 1],
+    ["small", .75],
+    ["shotgun", .75]
+])
+
 export const stateDrawer = (state: State): Drawable[] => {
     const playerDrawable = {
         ...state.playerState.pos,
@@ -39,7 +46,7 @@ export const stateDrawer = (state: State): Drawable[] => {
     const bulletDrawables: Drawable[] = state.bullets.map(bu => ({
         char: "•",
         color: bu.enemy ? enemyColor : playerColor,
-        size: baseSize,
+        size: baseSize * bulletSizeMap.get(bu.type),
         ...bu.pos
     }))
 
