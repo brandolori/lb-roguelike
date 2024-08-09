@@ -3,7 +3,7 @@ import { StateUpdater, init, Vec2, TimerRequest } from './bge'
 import "./style.css"
 import { stateDrawer } from "./stateDrawer"
 import { baseSize, screenWidth, playerSpeed, bulletSpeed, screenHeight, roomsInLevel, startPos } from "./constants"
-import { getFreeRandomDirection } from "./enemies"
+import { getFreeRandomDirection, enemyUpdate } from "./enemies"
 import { tryMove } from "./tryMove"
 import { generateRoom } from "./levels"
 import { getNewBullet, getShotgunBullet, randomizeVec2 } from "./player"
@@ -141,48 +141,8 @@ const stateUpdater: StateUpdater<State> = (state: State, events: Set<string | sy
         }
     })
 
-    enemies = enemies.map(en => ({ ...en, hurt: en.hurt && events.has(en.hurtSymbol) ? false : en.hurt }))
-
-    // turret
-    enemies = enemies.map(en => {
-        if (en.type != "turret" || en.state == "paused" || !events.has(en.symbol)) {
-            return en
-        }
-
-        newTimers.push({ id: en.symbol, time: Math.random() * 5 + 1 })
-        return {
-            ...en,
-            state: en.state == "idle" ? "shooting" : "idle",
-        }
-    })
-
-    // rhino
-    enemies = enemies.map(en => {
-        if (en.type != "rhino" || en.state == "paused" || !events.has(en.symbol)) {
-            return en
-        }
-
-        newTimers.push({ id: en.symbol, time: en.state == "idle" ? 1 : Math.random() * 5 + 1 })
-        return {
-            ...en,
-            state: en.state == "moving" ? "idle" : "moving",
-            movementDirection: Vec2.normalize(Vec2.sub(playerState.pos, en.pos))
-        }
-    })
-
-    // imp
-    enemies = enemies.map(en => {
-        if (en.type != "imp" || en.state == "paused" || !events.has(en.symbol)) {
-            return en
-        }
-
-        newTimers.push({ id: en.symbol, time: en.state == "idle" ? Math.random() + 1 : 1 })
-        return {
-            ...en,
-            state: en.state == "moving" ? "idle" : "moving",
-            movementDirection: getFreeRandomDirection(en.pos, obstacles.map(el => el.pos))
-        }
-    })
+    // update Enemies
+    enemies = enemies.map(en => enemyUpdate(en, state, events, newTimers))
 
     const turretBullets: Bullet[] = events.has("generic-rapid")
         ? enemies

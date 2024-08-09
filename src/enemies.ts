@@ -1,6 +1,7 @@
-import { Vec2, pick } from "./bge"
-import { baseSize, screenHeight, screenWidth } from "./constants"
-import { Enemy, EnemyData, EnemyType } from "./types"
+import { TimerRequest, Vec2, pick } from "./bge"
+import { baseSize, bulletSpeed, screenHeight, screenWidth } from "./constants"
+import { getNewBullet } from "./player"
+import { Bullet, Enemy, EnemyData, EnemyType, State } from "./types"
 
 export const getFreeRandomDirection = (starting: Vec2, obstacles: Vec2[]) => {
     for (let index = 0; index < 10; index++) {
@@ -131,4 +132,53 @@ const getValidPositions = (invalidPositions: Vec2[]): Vec2[] => {
     const startingPositions: Vec2[] = columns.flatMap(col => rows.map(row => ({ x: col, y: row }))).map(pos => Vec2.mult(pos, baseSize))
 
     return startingPositions.filter(pos => invalidPositions.every(inv => !Vec2.squareCollision(pos, inv, baseSize)))
+}
+
+export const enemyUpdate = (en: Enemy, state: State, events: Set<symbol | string>, newTimers: TimerRequest[]): Enemy => {
+
+    const hurt = en.hurt && events.has(en.hurtSymbol) ? false : en.hurt
+
+    if (en.type == "turret" && en.state != "paused" && events.has(en.symbol)) {
+        newTimers.push({ id: en.symbol, time: Math.random() * 5 + 1 })
+        return {
+            ...en,
+            hurt,
+            state: en.state == "idle" ? "shooting" : "idle",
+        }
+    }
+    if (en.type == "rhino" && en.state != "paused" && events.has(en.symbol)) {
+
+        newTimers.push({ id: en.symbol, time: en.state == "idle" ? 1 : Math.random() * 5 + 1 })
+        return {
+            ...en,
+            hurt,
+            state: en.state == "moving" ? "idle" : "moving",
+            movementDirection: Vec2.normalize(Vec2.sub(state.playerState.pos, en.pos))
+        }
+    }
+    if (en.type == "imp" && en.state != "paused" && events.has(en.symbol)) {
+        newTimers.push({ id: en.symbol, time: en.state == "idle" ? Math.random() + 1 : 1 })
+        return {
+            ...en,
+            hurt,
+            state: en.state == "moving" ? "idle" : "moving",
+            movementDirection: getFreeRandomDirection(en.pos, state.obstacles.map(el => el.pos))
+        }
+    }
+}
+
+const enemyBullets = (enemy: Enemy, state: State, events: Set<symbol | string>) => {
+    if (events.has("generic-rapid") &&  en.type == "turret" && en.state == "shooting")
+            .map(en => {
+                const direction = Vec2.normalize(Vec2.sub(state.playerState.pos, en.pos))
+                return getNewBullet(en.pos, Vec2.zero, direction, bulletSpeed, "normal", true)
+            })
+        : []
+
+    const impBullets: Bullet[] = enemies.filter(en => en.type == "imp" && en.state == "idle" && events.has(en.symbol)).map(en => {
+        const direction = Vec2.normalize(Vec2.sub(state.playerState.pos, en.pos))
+        return getNewBullet(en.pos, Vec2.zero, direction, bulletSpeed, "normal", true)
+    })
+
+    return [...turretBullets, ...impBullets]
 }
