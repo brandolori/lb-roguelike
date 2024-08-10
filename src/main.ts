@@ -3,7 +3,7 @@ import { StateUpdater, init, Vec2, TimerRequest } from './bge'
 import "./style.css"
 import { stateDrawer } from "./stateDrawer"
 import { baseSize, screenWidth, playerSpeed, bulletSpeed, screenHeight, roomsInLevel, startPos } from "./constants"
-import { getFreeRandomDirection, enemyUpdate } from "./enemies"
+import { enemyUpdate, enemyBullets } from "./enemies"
 import { tryMove } from "./tryMove"
 import { generateRoom } from "./levels"
 import { getNewBullet, getShotgunBullet, randomizeVec2 } from "./player"
@@ -36,7 +36,7 @@ const stateUpdater: StateUpdater<State> = (state: State, events: Set<string | sy
     // player shooting
     const shootCooldownOver = events.has("shoot-cooldown")
     const canShootInFrame = shootCooldownOver || canShoot
-    let addedBullets: Bullet[] = []
+    let newPlayerBullets: Bullet[] = []
     let hasShot = false
 
     if (canShoot) {
@@ -58,19 +58,19 @@ const stateUpdater: StateUpdater<State> = (state: State, events: Set<string | sy
         if (shootingDirection) {
 
             if (playerState.weapon == "none") {
-                addedBullets.push(getNewBullet(playerState.pos, playerOffset, shootingDirection, bulletSpeed, "normal", false))
+                newPlayerBullets.push(getNewBullet(playerState.pos, playerOffset, shootingDirection, bulletSpeed, "normal", false))
                 newTimers.push({ id: "shoot-cooldown", time: .2 })
             }
             else if (playerState.weapon == "big-gun") {
-                addedBullets.push(getNewBullet(playerState.pos, playerOffset, shootingDirection, bulletSpeed * .75, "big", false))
+                newPlayerBullets.push(getNewBullet(playerState.pos, playerOffset, shootingDirection, bulletSpeed * .75, "big", false))
                 newTimers.push({ id: "shoot-cooldown", time: .2 })
             }
             else if (playerState.weapon == "uzi") {
-                addedBullets.push(getNewBullet(playerState.pos, playerOffset, randomizeVec2(shootingDirection, .2), bulletSpeed * 1.5, "small", false))
+                newPlayerBullets.push(getNewBullet(playerState.pos, playerOffset, randomizeVec2(shootingDirection, .2), bulletSpeed * 1.5, "small", false))
                 newTimers.push({ id: "shoot-cooldown", time: .1 })
             }
             else if (playerState.weapon == "shotgun") {
-                addedBullets.push(
+                newPlayerBullets.push(
                     getShotgunBullet(playerState.pos, playerOffset, shootingDirection),
                     getShotgunBullet(playerState.pos, playerOffset, shootingDirection),
                     getShotgunBullet(playerState.pos, playerOffset, shootingDirection),
@@ -144,22 +144,10 @@ const stateUpdater: StateUpdater<State> = (state: State, events: Set<string | sy
     // update Enemies
     enemies = enemies.map(en => enemyUpdate(en, state, events, newTimers))
 
-    const turretBullets: Bullet[] = events.has("generic-rapid")
-        ? enemies
-            .filter(en => en.type == "turret" && en.state == "shooting")
-            .map(en => {
-                const direction = Vec2.normalize(Vec2.sub(playerState.pos, en.pos))
-                return getNewBullet(en.pos, Vec2.zero, direction, bulletSpeed, "normal", true)
-            })
-        : []
-
-    const impBullets: Bullet[] = enemies.filter(en => en.type == "imp" && en.state == "idle" && events.has(en.symbol)).map(en => {
-        const direction = Vec2.normalize(Vec2.sub(playerState.pos, en.pos))
-        return getNewBullet(en.pos, Vec2.zero, direction, bulletSpeed, "normal", true)
-    })
+    const newEnemyBullets = enemies.map(en => enemyBullets(en, state, events)).filter(el => el)
 
     // bullet/enemy collision
-    bullets = [...bullets, ...addedBullets, ...turretBullets, ...impBullets]
+    bullets = [...bullets, ...newPlayerBullets, ...newEnemyBullets]
 
     const collisions = bullets
         .filter(bu => !bu.enemy)

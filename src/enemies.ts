@@ -165,20 +165,18 @@ export const enemyUpdate = (en: Enemy, state: State, events: Set<symbol | string
             movementDirection: getFreeRandomDirection(en.pos, state.obstacles.map(el => el.pos))
         }
     }
+
+    return { ...en, hurt }
 }
 
-const enemyBullets = (enemy: Enemy, state: State, events: Set<symbol | string>) => {
-    if (events.has("generic-rapid") &&  en.type == "turret" && en.state == "shooting")
-            .map(en => {
-                const direction = Vec2.normalize(Vec2.sub(state.playerState.pos, en.pos))
-                return getNewBullet(en.pos, Vec2.zero, direction, bulletSpeed, "normal", true)
-            })
-        : []
-
-    const impBullets: Bullet[] = enemies.filter(en => en.type == "imp" && en.state == "idle" && events.has(en.symbol)).map(en => {
+export const enemyBullets = (en: Enemy, state: State, events: Set<symbol | string>) => {
+    if (events.has("generic-rapid") && en.type == "turret" && en.state == "shooting") {
         const direction = Vec2.normalize(Vec2.sub(state.playerState.pos, en.pos))
         return getNewBullet(en.pos, Vec2.zero, direction, bulletSpeed, "normal", true)
-    })
+    }
 
-    return [...turretBullets, ...impBullets]
+    if (en.type == "imp" && en.state == "idle" && events.has(en.symbol)) {
+        const direction = Vec2.normalize(Vec2.sub(state.playerState.pos, en.pos))
+        return getNewBullet(en.pos, Vec2.zero, direction, bulletSpeed, "normal", true)
+    }
 }
