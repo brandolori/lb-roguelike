@@ -18,3 +18,16 @@ export const randomizeVec2 = (source: Vec2, variation: number) => {
 
 export const getShotgunBullet = (playerPos: Vec2, playerOffset: Vec2, shootingDirection: Vec2) =>
     getNewBullet(Vec2.sum(playerPos, Vec2.mult(Vec2.fromAngle(Math.random() * Math.PI * 2), baseSize / 4)), playerOffset, randomizeVec2(shootingDirection, .2), bulletSpeed * (Math.random() * .25 + 3), "shotgun", false)
+
+export const getDamageFromBulletType = (type: BulletType) => {
+    switch (type) {
+        case "normal":
+            return 1
+        case "small":
+            return .5
+        case "big":
+            return 2
+        case "shotgun":
+            return 1
+    }
+}

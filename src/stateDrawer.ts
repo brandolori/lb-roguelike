@@ -1,21 +1,36 @@
-import { BulletType, EnemyType, ObstacleType, State, WeaponType } from "./types"
+import { BulletType, EnemyType, ObstacleType, State, TrinketType, WeaponType } from "./types"
 import { Drawable } from './bge'
-import { baseSize, playerColor, enemyColor, hurtColor, dropColor } from "./constants"
+import { baseSize, playerColor, enemyColor, hurtColor, dropColor, screenWidth } from "./constants"
 
-const obstacleSprites: Map<ObstacleType, string> = new Map([
-    ["wall1", "▧"],
-    ["wall2", "◩"],
-    ["wall3", "▩"],
-    ["block", "▥"],
-    ["door", "▣"]
-])
+const getObstacleSprite = (type: ObstacleType): string => {
+    switch (type) {
+        case "wall1": return "▧"
+        case "wall2": return "◩"
+        case "wall3": return "▩"
+        case "block": return "▥"
+        case "door": return "▣"
+    }
+}
 
-const dropSprites: Map<WeaponType, string> = new Map([
-    ["none", "@"],
-    ["big-gun", "#"],
-    ["shotgun", "$"],
-    ["uzi", "&"],
-])
+const getDropSprite = (type: WeaponType): string => {
+    switch (type) {
+        case "none": return "@"
+        case "big-gun": return "£"
+        case "shotgun": return "$"
+        case "uzi": return "€"
+    }
+}
+
+const getBulletSize = (type: BulletType): number => {
+    switch (type) {
+        case "big": return 1.5
+        case "normal": return 1
+        case "small": return 0.75
+        case "shotgun": return 0.75
+        default: return 1 // Valore di default per i tipi non riconosciuti
+    }
+}
+
 
 const getEnemyChar = (type: EnemyType): string => {
     switch (type) {
@@ -28,17 +43,37 @@ const getEnemyChar = (type: EnemyType): string => {
     }
 }
 
-const bulletSizeMap: Map<BulletType, number> = new Map([
-    ["big", 1.5],
-    ["normal", 1],
-    ["small", .75],
-    ["shotgun", .75]
-])
+const getTrinketChar = (type: TrinketType): string => {
+    switch (type) {
+        case "explode":
+            return "💥"
+        case "thorns":
+            return "🌹"
+        case "mirror":
+            return "🪞"
+        case "rubber":
+            return "🎈"
+        case "bible":
+            return "📕"
+        case "passthrough":
+            return "🪟"
+        case "ghost":
+            return "👻"
+        case "swamp":
+            return "🐸"
+        case "bus":
+            return "🚌"
+        case "selfie":
+            return "📷"
+        case "boom":
+            return "💣"
+    }
+}
 
 export const stateDrawer = (state: State): Drawable[] => {
     const playerDrawable = {
         ...state.playerState.pos,
-        char: '@',
+        char: getDropSprite(state.playerState.weapon),
         size: baseSize,
         color: state.playerState.hurt ? hurtColor : playerColor
     }
@@ -46,7 +81,7 @@ export const stateDrawer = (state: State): Drawable[] => {
     const bulletDrawables: Drawable[] = state.bullets.map(bu => ({
         char: "•",
         color: bu.enemy ? enemyColor : playerColor,
-        size: baseSize * bulletSizeMap.get(bu.type),
+        size: baseSize * getBulletSize(bu.type),
         ...bu.pos
     }))
 
@@ -58,23 +93,29 @@ export const stateDrawer = (state: State): Drawable[] => {
     }))
 
     const obstacleDrawable: Drawable[] = state.obstacles.map(os => ({
-        char: obstacleSprites.get(os.type),
+        char: getObstacleSprite(os.type),
         color: playerColor,
         size: baseSize,
         ...os.pos
     }))
 
-    const dropDrawables: Drawable[] = state.drops.map(dr => ({
-        char: dropSprites.get(dr.type),
-        color: dropColor,
-        size: baseSize,
-        ...dr.pos
-    }))
+    const dropDrawables: Drawable[] = state.drops.flatMap((dr): Drawable[] => ([
+        // {
+        //     char: getTrinketChar(dr.trinket),
+        //     ...dr.pos,
+        //     size: baseSize,
+        //     color: dropColor
+        // }, 
+        {
+            char: getDropSprite(dr.type) + getTrinketChar(dr.trinket),
+            color: dropColor,
+            size: baseSize / 2,
+            ...dr.pos
+        }
+    ]))
 
-    const healthBlocks = state.playerState.health / 100 * 8
-
+    const healthBlocks = Math.round(state.playerState.health / 100 * 8)
     const healthString = "[" + "■".repeat(healthBlocks) + " ".repeat(8 - healthBlocks) + "]"
-
     const healthDrawable: Drawable = {
         char: healthString,
         color: "#00000080",
@@ -83,12 +124,32 @@ export const stateDrawer = (state: State): Drawable[] => {
         y: state.playerState.pos.y + baseSize * .75
     }
 
+    const weaponHealthBlock = Math.round(state.playerState.weaponHealth / 100 * 8)
+    const weaponHealthString = "[" + "■".repeat(weaponHealthBlock) + " ".repeat(8 - weaponHealthBlock) + "]"
+    const weaponHealthDrawable: Drawable = {
+        char: weaponHealthString,
+        color: state.playerState.weapon != "none" ? "#30300080" : "#00000000",
+        size: baseSize / 5,
+        x: state.playerState.pos.x,
+        y: state.playerState.pos.y + baseSize
+    }
+
+    const trinketDrawables: Drawable[] = state.playerState.trinkets.map((tr, i) => ({
+        char: getTrinketChar(tr),
+        color: "black",
+        size: baseSize * .75,
+        x: screenWidth + baseSize / 2,
+        y: (i + 0.5) * baseSize
+    }))
+
     return [
-        playerDrawable,
-        ...bulletDrawables,
-        ...enemiesDrawables,
-        ...obstacleDrawable,
         ...dropDrawables,
+        ...obstacleDrawable,
+        ...enemiesDrawables,
+        playerDrawable,
         healthDrawable,
+        weaponHealthDrawable,
+        ...bulletDrawables,
+        ...trinketDrawables
     ]
 }

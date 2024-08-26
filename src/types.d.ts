@@ -43,11 +43,14 @@ type PlayerState = {
     hurt: boolean
     weapon: WeaponType
     weaponHealth: number
+    trinkets: TrinketType[]
+    pendingTrinket: TrinketType
 }
 
 type Drop = {
     pos: Vec2
     type: WeaponType
+    trinket: TrinketType
 }
 
 type State = {
@@ -60,3 +63,5 @@ type State = {
     levelIndex: number
     roomIndex: number
 }
+
+type TrinketType = "explode" | "thorns" | "mirror" | "rubber" | "bible" | "passthrough" | "ghost" | "swamp" | "bus" | "selfie" | "boom"

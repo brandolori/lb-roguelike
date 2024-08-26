@@ -1,12 +1,12 @@
-import { Bullet, Drop, Enemy, State } from "./types"
-import { StateUpdater, init, Vec2, TimerRequest } from './bge'
+import { Bullet, Drop, Enemy, State, TrinketType, WeaponType } from "./types"
+import { StateUpdater, init, Vec2, TimerRequest, pick } from './bge'
 import "./style.css"
 import { stateDrawer } from "./stateDrawer"
 import { baseSize, screenWidth, playerSpeed, bulletSpeed, screenHeight, roomsInLevel, startPos } from "./constants"
 import { enemyUpdate, enemyBullets } from "./enemies"
 import { tryMove } from "./tryMove"
 import { generateRoom } from "./levels"
-import { getNewBullet, getShotgunBullet, randomizeVec2 } from "./player"
+import { getNewBullet, getShotgunBullet, getDamageFromBulletType, randomizeVec2 } from "./player"
 
 const stateUpdater: StateUpdater<State> = (state: State, events: Set<string | symbol>, deltaTime: number) => {
     // unpack
@@ -59,10 +59,10 @@ const stateUpdater: StateUpdater<State> = (state: State, events: Set<string | sy
 
             if (playerState.weapon == "none") {
                 newPlayerBullets.push(getNewBullet(playerState.pos, playerOffset, shootingDirection, bulletSpeed, "normal", false))
-                newTimers.push({ id: "shoot-cooldown", time: .2 })
+                newTimers.push({ id: "shoot-cooldown", time: .3 })
             }
             else if (playerState.weapon == "big-gun") {
-                newPlayerBullets.push(getNewBullet(playerState.pos, playerOffset, shootingDirection, bulletSpeed * .75, "big", false))
+                newPlayerBullets.push(getNewBullet(playerState.pos, playerOffset, shootingDirection, bulletSpeed, "big", false))
                 newTimers.push({ id: "shoot-cooldown", time: .2 })
             }
             else if (playerState.weapon == "uzi") {
@@ -154,13 +154,14 @@ const stateUpdater: StateUpdater<State> = (state: State, events: Set<string | sy
         .flatMap(bu => enemies.map(en => ([bu, en])))
         .filter(co => Vec2.distance(co[0].pos, co[1].pos) <= baseSize / 2) as [Bullet, Enemy][]
 
-    const uniqueCollisions = new Map(collisions)
-    const bulletsCollided = new Set(uniqueCollisions.keys())
-    const enemiesCollided = new Set(uniqueCollisions.values())
+    const bulletsCollided = new Set(collisions.map(el => el[0]))
+    const enemiesCollided = new Set(collisions.map(el => el[1]))
 
     bullets = bullets.filter(bu => !bulletsCollided.has(bu))
     const enemiesNotCollided = enemies.filter(en => !enemiesCollided.has(en))
     const enemiesHurt: Enemy[] = [...enemiesCollided].map(en => {
+
+        const totalDamage = collisions.filter(co => co[1] == en).reduce((sum, co) => sum + getDamageFromBulletType(co[0].type), 0)
 
         if (!en.hurt) {
             newTimers.push({ id: en.hurtSymbol, time: .125 })
@@ -169,13 +170,39 @@ const stateUpdater: StateUpdater<State> = (state: State, events: Set<string | sy
         return ({
             ...en,
             hurt: true,
-            health: en.health - 1
+            health: en.health - totalDamage
         })
     })
 
+    const totalDamage = [...bulletsCollided].reduce((sum, bu) => sum + getDamageFromBulletType(bu.type), 0)
+
+    if (playerState.weapon != "none") {
+        playerState.weaponHealth -= totalDamage * 3
+        if (playerState.weaponHealth < 0) {
+            playerState.weapon = "none"
+            playerState.trinkets = [...playerState.trinkets, playerState.pendingTrinket]
+        }
+    }
+
     const survivedEnemies = enemiesHurt.filter(en => en.health > 0)
 
-    const newDrops: Drop[] = enemiesHurt.filter(en => en.health <= 0).map(en => ({ pos: en.pos, type: "big-gun" }))
+    const newDrops: Drop[] = enemiesHurt
+        .filter(en => en.health <= 0).filter(() => Math.random() > 0.5)
+        .map(en => ({
+            pos: en.pos, type: pick<WeaponType>(["big-gun", "shotgun", "uzi"]), trinket: pick<TrinketType>([
+                "bible",
+                "boom",
+                // "bus",
+                // "explode",
+                // "ghost",
+                // "mirror",
+                // "passthrough",
+                // "rubber",
+                // "selfie",
+                // "swamp",
+                // "thorns"
+            ])
+        }))
 
     drops.push(...newDrops)
 
@@ -204,14 +231,24 @@ const stateUpdater: StateUpdater<State> = (state: State, events: Set<string | sy
         .filter(en => Vec2.squareCollision(en.pos, playerState.pos, baseSize + 1))
 
     // player damage
-    if ((playerCollisions.length > 0 || enemyPlayerCollisions.length > 0) && !playerState.hurt) {
-        playerState.health -= 25
-        newTimers.push({ id: "hurt-cooldown", time: .25 })
-        playerState.hurt = true
+    // if ((playerCollisions.length > 0 || enemyPlayerCollisions.length > 0) && !playerState.hurt) {
+    //     playerState.health -= 25
+    //     newTimers.push({ id: "hurt-cooldown", time: .25 })
+    //     playerState.hurt = true
 
-        if (playerState.health < 1) {
-            location.reload()
-        }
+    //     if (playerState.health < 1) {
+    //         location.reload()
+    //     }
+    // }
+
+    // player/drop collisions
+    const collidedDrop = drops.find(dr => Vec2.squareCollision(dr.pos, playerState.pos, baseSize))
+
+    if (collidedDrop) {
+        playerState.weapon = collidedDrop.type
+        playerState.weaponHealth = 100
+        playerState.pendingTrinket = collidedDrop.trinket
+        drops = drops.filter(dr => dr != collidedDrop)
     }
 
     // process events
@@ -256,10 +293,10 @@ const stateUpdater: StateUpdater<State> = (state: State, events: Set<string | sy
 }
 
 const canvas = document.getElementById('bge-canvas')! as HTMLCanvasElement
-canvas.width = screenWidth
+canvas.width = screenWidth + baseSize
 canvas.height = screenHeight
 
-const initialState = generateRoom(0, 0, { health: 100, pos: startPos, hurt: false, weapon: "shotgun", weaponHealth: 100 })
+const initialState = generateRoom(0, 0, { health: 100, pos: startPos, hurt: false, weapon: "none", weaponHealth: 100, trinkets: [], pendingTrinket: "bible" })
 
 const startEvents = [{ id: "generic-rapid", time: 0 }, { id: "room-start-cooldown", time: 1 }]
 
