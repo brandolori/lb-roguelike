@@ -67,7 +67,7 @@ const stateUpdater: StateUpdater<State> = (state: State, events: Set<string | sy
         }
 
         if (shootingDirection) {
-            const timeToShoot = playerState.trinkets.includes("mirror") ? 2 : 1
+            const timeToShoot = playerState.trinkets.includes("twins") ? 2 : 1
             for (let index = 0; index < timeToShoot; index++) {
                 if (playerState.weapon == "none") {
                     newPlayerBullets.push(getNewBullet(playerState.pos, playerOffset, shootingDirection, bulletSpeed, "normal", false))
@@ -212,7 +212,7 @@ const stateUpdater: StateUpdater<State> = (state: State, events: Set<string | sy
                 "bus",
                 // "explode",
                 "ghost",
-                "mirror",
+                "twins",
                 "passthrough",
                 "rubber",
                 // "selfie",
@@ -289,7 +289,7 @@ const stateUpdater: StateUpdater<State> = (state: State, events: Set<string | sy
 
     // process events
     if (events.has("generic-rapid")) {
-        newTimers.push({ id: "generic-rapid", time: .5 })
+        newTimers.push({ id: "generic-rapid", time: 1 })
     }
     if (events.has("room-start-cooldown")) {
         enemies = enemies.map(en => ({ ...en, state: "idle" }))
@@ -339,7 +339,9 @@ const initialState = generateRoom(0, 0, {
     hurt: false,
     weapon: "none",
     weaponHealth: 100,
-    trinkets: ["bible", "mirror", "ghost", "passthrough", "bus", "rubber"],
+    trinkets: [
+        // "bible", "twins", "ghost", "passthrough", "bus", "rubber"
+    ],
     pendingTrinket: "bible"
 })
 

@@ -50,8 +50,8 @@ const getTrinketChar = (type: TrinketType): string => {
             return "💥"
         case "thorns":
             return "🌹"
-        case "mirror":
-            return "🪞"
+        case "twins":
+            return "👬"
         case "rubber":
             return "🎈"
         case "bible":
@@ -80,10 +80,13 @@ export const stateDrawer = (state: State): Drawable[] => {
     }
 
     const bulletDrawables: Drawable[] = state.bullets.map(bu => ({
-        char: "•",
+        char: bu.enemy ? "✦" : "•",
         color: bu.enemy ? enemyColor : playerColor,
-        size: baseSize * getBulletSize(bu.type),
-        ...bu.pos
+        size: baseSize * getBulletSize(bu.type) * (bu.enemy ? .50 : 1),
+        x: bu.pos.x,
+        y: bu.enemy
+            ? bu.pos.y + baseSize * .25
+            : bu.pos.y
     }))
 
     const enemiesDrawables: Drawable[] = state.enemies.map(en => ({

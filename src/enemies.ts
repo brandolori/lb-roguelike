@@ -22,7 +22,7 @@ const getSlime = (pos: Vec2): Enemy => ({
     symbol: Symbol(),
     hurt: false,
     hurtSymbol: Symbol(),
-    health: 6
+    health: 5
 })
 
 const getFastSlime = (pos: Vec2): Enemy => ({
@@ -33,7 +33,7 @@ const getFastSlime = (pos: Vec2): Enemy => ({
     symbol: Symbol(),
     hurt: false,
     hurtSymbol: Symbol(),
-    health: 6
+    health: 5
 })
 
 const getTurret = (pos: Vec2): Enemy => ({
@@ -44,7 +44,7 @@ const getTurret = (pos: Vec2): Enemy => ({
     symbol: Symbol(),
     hurt: false,
     hurtSymbol: Symbol(),
-    health: 10
+    health: 8
 })
 
 const getImp = (pos: Vec2): Enemy => ({
@@ -55,7 +55,7 @@ const getImp = (pos: Vec2): Enemy => ({
     symbol: Symbol(),
     hurt: false,
     hurtSymbol: Symbol(),
-    health: 10
+    health: 7
 })
 
 const getRhino = (pos: Vec2): Enemy => ({

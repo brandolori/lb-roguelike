@@ -65,4 +65,4 @@ type State = {
     bible: number
 }
 
-type TrinketType = "explode" | "thorns" | "mirror" | "rubber" | "bible" | "passthrough" | "ghost" | "swamp" | "bus" | "selfie" | "boom"
+type TrinketType = "explode" | "thorns" | "twins" | "rubber" | "bible" | "passthrough" | "ghost" | "swamp" | "bus" | "selfie" | "boom"
