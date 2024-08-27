@@ -6,11 +6,11 @@ import { baseSize, screenWidth, playerSpeed, bulletSpeed, screenHeight, roomsInL
 import { enemyUpdate, enemyBullets } from "./enemies"
 import { tryMove } from "./tryMove"
 import { generateRoom } from "./levels"
-import { getNewBullet, getShotgunBullet, getDamageFromBulletType, randomizeVec2 } from "./player"
+import { getNewBullet, getShotgunBullet, getDamageFromBulletType, randomizeVec2, getBiblePosition, getShootingCooldownFromGun, getGhostPosition } from "./player"
 
 const stateUpdater: StateUpdater<State> = (state: State, events: Set<string | symbol>, deltaTime: number) => {
     // unpack
-    const { canShoot, obstacles, roomIndex, levelIndex } = state
+    const { canShoot, obstacles, roomIndex, levelIndex, bible } = state
 
     const playerState = { ...state.playerState }
     let enemies = [...state.enemies]
@@ -20,6 +20,7 @@ const stateUpdater: StateUpdater<State> = (state: State, events: Set<string | sy
     const newTimers: TimerRequest[] = []
 
     // player movement
+    const playerStartPosition = playerState.pos
     const playerOffset = {
         x: (events.has("move-right") ? +playerSpeed : 0) + (events.has("move-left") ? -playerSpeed : 0),
         y: (events.has("move-down") ? +playerSpeed : 0) + (events.has("move-up") ? -playerSpeed : 0)
@@ -28,10 +29,20 @@ const stateUpdater: StateUpdater<State> = (state: State, events: Set<string | sy
 
     const occupiedPositions = [
         ...enemies.map(en => en.pos),
-        ...obstacles.map(en => en.pos)
+        ...obstacles.filter(os => playerState.trinkets.includes("passthrough") ? os.type != "block" : true).map(en => en.pos)
     ]
 
     playerState.pos = tryMove(playerState.pos, playerDelta, occupiedPositions)
+
+    // bus
+
+    if (playerState.trinkets.includes("bus")) {
+        if (Vec2.distance(playerStartPosition, playerState.pos) > 0.1) {
+            playerState.health = Math.min(playerState.health + 2 * deltaTime, 100)
+        } else {
+            playerState.health -= 5 * deltaTime
+        }
+    }
 
     // player shooting
     const shootCooldownOver = events.has("shoot-cooldown")
@@ -56,33 +67,36 @@ const stateUpdater: StateUpdater<State> = (state: State, events: Set<string | sy
         }
 
         if (shootingDirection) {
+            const timeToShoot = playerState.trinkets.includes("mirror") ? 2 : 1
+            for (let index = 0; index < timeToShoot; index++) {
+                if (playerState.weapon == "none") {
+                    newPlayerBullets.push(getNewBullet(playerState.pos, playerOffset, shootingDirection, bulletSpeed, "normal", false))
+                }
+                else if (playerState.weapon == "big-gun") {
+                    newPlayerBullets.push(getNewBullet(playerState.pos, playerOffset, shootingDirection, bulletSpeed, "big", false))
+                }
+                else if (playerState.weapon == "uzi") {
+                    newPlayerBullets.push(getNewBullet(playerState.pos, playerOffset, randomizeVec2(shootingDirection, .2), bulletSpeed * 1.5, "small", false))
+                }
+                else if (playerState.weapon == "shotgun") {
+                    newPlayerBullets.push(
+                        getShotgunBullet(playerState.pos, playerOffset, shootingDirection),
+                        getShotgunBullet(playerState.pos, playerOffset, shootingDirection),
+                        getShotgunBullet(playerState.pos, playerOffset, shootingDirection),
+                        getShotgunBullet(playerState.pos, playerOffset, shootingDirection),
+                        getShotgunBullet(playerState.pos, playerOffset, shootingDirection),
 
-            if (playerState.weapon == "none") {
-                newPlayerBullets.push(getNewBullet(playerState.pos, playerOffset, shootingDirection, bulletSpeed, "normal", false))
-                newTimers.push({ id: "shoot-cooldown", time: .3 })
-            }
-            else if (playerState.weapon == "big-gun") {
-                newPlayerBullets.push(getNewBullet(playerState.pos, playerOffset, shootingDirection, bulletSpeed, "big", false))
-                newTimers.push({ id: "shoot-cooldown", time: .2 })
-            }
-            else if (playerState.weapon == "uzi") {
-                newPlayerBullets.push(getNewBullet(playerState.pos, playerOffset, randomizeVec2(shootingDirection, .2), bulletSpeed * 1.5, "small", false))
-                newTimers.push({ id: "shoot-cooldown", time: .1 })
-            }
-            else if (playerState.weapon == "shotgun") {
-                newPlayerBullets.push(
-                    getShotgunBullet(playerState.pos, playerOffset, shootingDirection),
-                    getShotgunBullet(playerState.pos, playerOffset, shootingDirection),
-                    getShotgunBullet(playerState.pos, playerOffset, shootingDirection),
-                    getShotgunBullet(playerState.pos, playerOffset, shootingDirection),
-                    getShotgunBullet(playerState.pos, playerOffset, shootingDirection),
+                    )
+                }
 
-                )
-                newTimers.push({ id: "shoot-cooldown", time: .75 })
+                shootingDirection = Vec2.mult(shootingDirection, -1)
             }
+            newTimers.push({ id: "shoot-cooldown", time: getShootingCooldownFromGun(playerState.weapon) })
             hasShot = true
         }
     }
+
+    const validNewPlayerBullets = newPlayerBullets.filter(bu => obstacles.every(os => !Vec2.squareCollision(bu.pos, os.pos, baseSize)))
 
     // bullet movement
     bullets = bullets.map(bu => ({ ...bu, pos: Vec2.sum(bu.pos, Vec2.mult(bu.speed, deltaTime)) }))
@@ -147,57 +161,60 @@ const stateUpdater: StateUpdater<State> = (state: State, events: Set<string | sy
     const newEnemyBullets = enemies.map(en => enemyBullets(en, state, events)).filter(el => el)
 
     // bullet/enemy collision
-    bullets = [...bullets, ...newPlayerBullets, ...newEnemyBullets]
-
+    bullets = [...bullets, ...validNewPlayerBullets, ...newEnemyBullets]
     const collisions = bullets
         .filter(bu => !bu.enemy)
         .flatMap(bu => enemies.map(en => ([bu, en])))
         .filter(co => Vec2.distance(co[0].pos, co[1].pos) <= baseSize / 2) as [Bullet, Enemy][]
-
     const bulletsCollided = new Set(collisions.map(el => el[0]))
-    const enemiesCollided = new Set(collisions.map(el => el[1]))
-
     bullets = bullets.filter(bu => !bulletsCollided.has(bu))
-    const enemiesNotCollided = enemies.filter(en => !enemiesCollided.has(en))
-    const enemiesHurt: Enemy[] = [...enemiesCollided].map(en => {
 
-        const totalDamage = collisions.filter(co => co[1] == en).reduce((sum, co) => sum + getDamageFromBulletType(co[0].type), 0)
+    // damage enemies
+    enemies = enemies.map(en => {
+        const bulletDamage = collisions.filter(co => co[1] == en).reduce((sum, co) => sum + getDamageFromBulletType(co[0].type), 0)
 
-        if (!en.hurt) {
+        const bibleDamage = playerState.trinkets.includes("bible") && Vec2.squareCollision(getBiblePosition(playerState.pos, bible), en.pos, baseSize)
+            ? 16 * deltaTime
+            : 0
+
+        const ghostDamage = playerState.trinkets.includes("ghost") && Vec2.squareCollision(getGhostPosition(playerState.pos), en.pos, baseSize)
+            ? 16 * deltaTime
+            : 0
+
+        const totalDamage = bulletDamage + bibleDamage + ghostDamage
+
+        if (totalDamage > 0 && !en.hurt) {
             newTimers.push({ id: en.hurtSymbol, time: .125 })
         }
-
         return ({
             ...en,
-            hurt: true,
+            hurt: totalDamage > 0 ? true : en.hurt,
             health: en.health - totalDamage
         })
     })
 
-    const totalDamage = [...bulletsCollided].reduce((sum, bu) => sum + getDamageFromBulletType(bu.type), 0)
+    const gunDamage = [...bulletsCollided].reduce((sum, bu) => sum + getDamageFromBulletType(bu.type), 0)
 
     if (playerState.weapon != "none") {
-        playerState.weaponHealth -= totalDamage * 3
+        playerState.weaponHealth -= gunDamage * 3
         if (playerState.weaponHealth < 0) {
             playerState.weapon = "none"
             playerState.trinkets = [...playerState.trinkets, playerState.pendingTrinket]
         }
     }
 
-    const survivedEnemies = enemiesHurt.filter(en => en.health > 0)
-
-    const newDrops: Drop[] = enemiesHurt
+    const newDrops: Drop[] = enemies
         .filter(en => en.health <= 0).filter(() => Math.random() > 0.5)
         .map(en => ({
             pos: en.pos, type: pick<WeaponType>(["big-gun", "shotgun", "uzi"]), trinket: pick<TrinketType>([
                 "bible",
-                "boom",
-                // "bus",
+                // "boom",
+                "bus",
                 // "explode",
-                // "ghost",
-                // "mirror",
-                // "passthrough",
-                // "rubber",
+                "ghost",
+                "mirror",
+                "passthrough",
+                "rubber",
                 // "selfie",
                 // "swamp",
                 // "thorns"
@@ -206,17 +223,34 @@ const stateUpdater: StateUpdater<State> = (state: State, events: Set<string | sy
 
     drops.push(...newDrops)
 
-    enemies = [...enemiesNotCollided, ...survivedEnemies]
+    enemies = enemies.filter(en => en.health > 0)
 
     // bullet/wall collisions
     const wallCollisions = bullets
         .flatMap(bu => obstacles.map(os => ({ bu, os })))
         .filter(co => Vec2.squareCollision(co.bu.pos, co.os.pos, baseSize))
-        .map(cp => cp.bu)
 
-    const wallCollisionsSet = new Set<Bullet>(wallCollisions)
+    const hasRubber = playerState.trinkets.includes("rubber")
+    bullets = bullets.map(bu => {
+        const collision = wallCollisions.find(co => co.bu == bu)
 
-    bullets = bullets.filter(bu => !wallCollisionsSet.has(bu))
+        if (!collision) {
+            return bu
+        }
+
+        if (!bu.enemy && hasRubber) {
+            const xDistance = Math.abs(bu.pos.x - collision.os.pos.x)
+            const yDistance = Math.abs(bu.pos.y - collision.os.pos.y)
+
+            return {
+                ...bu,
+                speed: yDistance > xDistance
+                    ? { x: bu.speed.x, y: -bu.speed.y }
+                    : { x: -bu.speed.x, y: bu.speed.y }
+            }
+        }
+        return null
+    }).filter(bu => bu)
 
     // bullet/player collisions
     const playerCollisions = bullets
@@ -231,15 +265,17 @@ const stateUpdater: StateUpdater<State> = (state: State, events: Set<string | sy
         .filter(en => Vec2.squareCollision(en.pos, playerState.pos, baseSize + 1))
 
     // player damage
-    // if ((playerCollisions.length > 0 || enemyPlayerCollisions.length > 0) && !playerState.hurt) {
-    //     playerState.health -= 25
-    //     newTimers.push({ id: "hurt-cooldown", time: .25 })
-    //     playerState.hurt = true
+    if ((playerCollisions.length > 0 || enemyPlayerCollisions.length > 0) && !playerState.hurt) {
+        playerState.health -= 25
+        newTimers.push({ id: "hurt-cooldown", time: .25 })
+        playerState.hurt = true
+    }
 
-    //     if (playerState.health < 1) {
-    //         location.reload()
-    //     }
-    // }
+    if (playerState.health < 1) {
+        location.reload()
+    }
+
+
 
     // player/drop collisions
     const collidedDrop = drops.find(dr => Vec2.squareCollision(dr.pos, playerState.pos, baseSize))
@@ -288,6 +324,7 @@ const stateUpdater: StateUpdater<State> = (state: State, events: Set<string | sy
             enemies: enemies,
             drops,
             canShoot: canShootInFrame && !hasShot,
+            bible: (bible + deltaTime * 2) % (Math.PI * 2)
         }
     }
 }
@@ -296,7 +333,15 @@ const canvas = document.getElementById('bge-canvas')! as HTMLCanvasElement
 canvas.width = screenWidth + baseSize
 canvas.height = screenHeight
 
-const initialState = generateRoom(0, 0, { health: 100, pos: startPos, hurt: false, weapon: "none", weaponHealth: 100, trinkets: [], pendingTrinket: "bible" })
+const initialState = generateRoom(0, 0, {
+    health: 100,
+    pos: startPos,
+    hurt: false,
+    weapon: "none",
+    weaponHealth: 100,
+    trinkets: ["bible", "mirror", "ghost", "passthrough", "bus", "rubber"],
+    pendingTrinket: "bible"
+})
 
 const startEvents = [{ id: "generic-rapid", time: 0 }, { id: "room-start-cooldown", time: 1 }]
 

@@ -1,6 +1,7 @@
 import { BulletType, EnemyType, ObstacleType, State, TrinketType, WeaponType } from "./types"
 import { Drawable } from './bge'
-import { baseSize, playerColor, enemyColor, hurtColor, dropColor, screenWidth } from "./constants"
+import { baseSize, playerColor, enemyColor, hurtColor, dropColor, screenWidth, bibleDistance, ghostColor } from "./constants"
+import { getBiblePosition, getGhostPosition } from "./player"
 
 const getObstacleSprite = (type: ObstacleType): string => {
     switch (type) {
@@ -142,6 +143,20 @@ export const stateDrawer = (state: State): Drawable[] => {
         y: (i + 0.5) * baseSize
     }))
 
+    const bibleDrawable: Drawable = {
+        char: getTrinketChar("bible"),
+        color: state.playerState.trinkets.includes("bible") ? "black" : "#00000000",
+        size: baseSize * .75,
+        ...getBiblePosition(state.playerState.pos, state.bible)
+    }
+
+    const ghostDrawable: Drawable = {
+        char: getDropSprite(state.playerState.weapon),
+        size: baseSize,
+        color: state.playerState.trinkets.includes("ghost") ? ghostColor : "#00000000",
+        ...getGhostPosition(state.playerState.pos),
+    }
+
     return [
         ...dropDrawables,
         ...obstacleDrawable,
@@ -150,6 +165,8 @@ export const stateDrawer = (state: State): Drawable[] => {
         healthDrawable,
         weaponHealthDrawable,
         ...bulletDrawables,
-        ...trinketDrawables
+        ...trinketDrawables,
+        bibleDrawable,
+        ghostDrawable
     ]
 }

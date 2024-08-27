@@ -40,7 +40,8 @@ export const generateRoom = (roomIndex: number, levelIndex: number, playerState:
         obstacles: newRoom,
         drops: [],
         roomIndex: roomIndex,
-        levelIndex: levelIndex
+        levelIndex: levelIndex,
+        bible: 0
     }
 
     return initialState

@@ -1,6 +1,6 @@
-import { Bullet, BulletType } from "./types"
+import { Bullet, BulletType, WeaponType } from "./types"
 import { Vec2 } from './bge'
-import { baseSize, bulletSpeed } from "./constants"
+import { baseSize, bibleDistance, bulletSpeed, screenHeight, screenWidth } from "./constants"
 
 export const getNewBullet = (position: Vec2, baseSpeed: Vec2, direction: Vec2, speed: number, type: BulletType, enemy: boolean): Bullet => ({
     pos: Vec2.sum(position, Vec2.mult(direction, baseSize / 2)),
@@ -31,3 +31,26 @@ export const getDamageFromBulletType = (type: BulletType) => {
             return 1
     }
 }
+
+export const getBiblePosition = (playerPos: Vec2, bibleAngle: number): Vec2 => ({
+    x: playerPos.x + Math.cos(bibleAngle) * bibleDistance,
+    y: playerPos.y + Math.sin(bibleAngle) * bibleDistance,
+})
+
+export const getShootingCooldownFromGun = (type: WeaponType) => {
+    switch (type) {
+        case "none":
+            return .3
+        case "big-gun":
+            return .2
+        case "shotgun":
+            return .75
+        case "uzi":
+            return .1
+    }
+}
+
+export const getGhostPosition = (playerPos: Vec2): Vec2 => ({
+    x: screenWidth - playerPos.x,
+    y: screenHeight - playerPos.y
+})

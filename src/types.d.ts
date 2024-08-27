@@ -62,6 +62,7 @@ type State = {
     drops: Drop[]
     levelIndex: number
     roomIndex: number
+    bible: number
 }
 
 type TrinketType = "explode" | "thorns" | "mirror" | "rubber" | "bible" | "passthrough" | "ghost" | "swamp" | "bus" | "selfie" | "boom"
