@@ -1,6 +1,8 @@
-import { startPos } from "./constants"
+import { Vec2 } from "./bge"
+import { baseSize, screenHeight, screenWidth, startPos } from "./constants"
 import { getRandomEnemies } from "./enemies"
-import { getRandomRoom } from "./rooms"
+import { getRandomDrop } from "./player"
+import { getRandomRoom, getWalls } from "./rooms"
 import { EnemyType, ObstacleType, PlayerState, State } from "./types"
 
 const levels: { walls: ObstacleType; enemyTypes: EnemyType[]; name: string, difficulties: number[] }[] = [
@@ -41,6 +43,30 @@ export const generateRoom = (roomIndex: number, levelIndex: number, playerState:
         drops: [],
         roomIndex: roomIndex,
         levelIndex: levelIndex,
+        bible: 0,
+        caltrops: []
+    }
+
+    return initialState
+}
+
+export const generateStartRoom = (playerState: PlayerState) => {
+    const levelData = levels[0]
+
+    const newRoom = getWalls(levelData.walls)
+
+    const initialState: State = {
+        playerState: {
+            ...playerState,
+            pos: startPos
+        },
+        canShoot: true,
+        bullets: [],
+        enemies: [],
+        obstacles: newRoom,
+        drops: [...Array(3).keys()].map((_, i) => getRandomDrop({ x: screenWidth / 2 + (i - 1) * baseSize * 3, y: screenHeight / 2 })),
+        roomIndex: -1,
+        levelIndex: 0,
         bible: 0,
         caltrops: []
     }

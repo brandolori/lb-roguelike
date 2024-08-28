@@ -1,5 +1,5 @@
-import { Bullet, BulletType, WeaponType } from "./types"
-import { Vec2 } from './bge'
+import { Bullet, BulletType, TrinketType, WeaponType } from "./types"
+import { Vec2, pick } from './bge'
 import { baseSize, bibleDistance, bulletSpeed, screenHeight, screenWidth } from "./constants"
 
 export const getNewBullet = (position: Vec2, baseSpeed: Vec2, direction: Vec2, speed: number, type: BulletType, enemy: boolean): Bullet => ({
@@ -54,4 +54,21 @@ export const getShootingCooldownFromGun = (type: WeaponType) => {
 export const getGhostPosition = (playerPos: Vec2): Vec2 => ({
     x: screenWidth - playerPos.x,
     y: screenHeight - playerPos.y
+})
+
+export const getRandomDrop = (pos: Vec2) => ({
+    pos: pos,
+    type: pick<WeaponType>(["big-gun", "shotgun", "uzi"]),
+    trinket: pick<TrinketType>([
+        "bible",
+        // "boom",
+        "bus",
+        // "explode",
+        "ghost",
+        "twins",
+        "passthrough",
+        "rubber",
+        // "selfie",
+        "swamp",
+    ])
 })

@@ -61,13 +61,13 @@ const getVec2sInQuad = (p1: Vec2, p2: Vec2, p3: Vec2, p4: Vec2) => {
 
 const generateSequence = (length: number) => Array.from({ length: length }, (_, index) => index)
 
-const getWalls = (): Vec2[] => {
+export const getWalls = (type: ObstacleType): Obstacle[] => {
     const wall1 = generateSequence(screenHeight / baseSize).map(nm => ({ x: baseSize / 2, y: nm * baseSize + baseSize / 2 }))
     const wall2 = generateSequence(screenHeight / baseSize).map(nm => ({ x: screenWidth - baseSize / 2, y: nm * baseSize + baseSize / 2 }))
     const wall3 = generateSequence(screenWidth / baseSize).map(nm => ({ y: baseSize / 2, x: nm * baseSize + baseSize / 2 }))
     const wall4 = generateSequence(screenWidth / baseSize).map(nm => ({ y: screenHeight - baseSize / 2, x: nm * baseSize + baseSize / 2 }))
 
-    return [...wall1, ...wall2, ...wall3, ...wall4]
+    return [...wall1, ...wall2, ...wall3, ...wall4].map(v2 => ({ pos: v2, type }))
 }
 
 const getRoomA = (): Vec2[] => {
@@ -153,6 +153,5 @@ export const getRandomRoom = (wallType: ObstacleType): Obstacle[] => {
             option: flipX(getRoomE(), { x: screenWidth, y: screenHeight })
         },
     ]).map(v2 => ({ pos: v2, type: "block" } as Obstacle))
-        .concat(getWalls().map(v2 => ({ pos: v2, type: wallType } as Obstacle)))
-
+        .concat(getWalls(wallType))
 }

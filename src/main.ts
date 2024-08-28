@@ -5,8 +5,8 @@ import { stateDrawer } from "./stateDrawer"
 import { baseSize, screenWidth, playerSpeed, bulletSpeed, screenHeight, roomsInLevel, startPos } from "./constants"
 import { enemyUpdate, enemyBullets } from "./enemies"
 import { tryMove } from "./tryMove"
-import { generateRoom } from "./levels"
-import { getNewBullet, getShotgunBullet, getDamageFromBulletType, randomizeVec2, getBiblePosition, getShootingCooldownFromGun, getGhostPosition } from "./player"
+import { generateRoom, generateStartRoom } from "./levels"
+import { getNewBullet, getShotgunBullet, getDamageFromBulletType, randomizeVec2, getBiblePosition, getShootingCooldownFromGun, getGhostPosition, getRandomDrop } from "./player"
 
 const stateUpdater: StateUpdater<State> = (state: State, events: Set<string | symbol>, deltaTime: number) => {
     // unpack
@@ -215,7 +215,7 @@ const stateUpdater: StateUpdater<State> = (state: State, events: Set<string | sy
     const gunDamage = [...bulletsCollided].reduce((sum, bu) => sum + getDamageFromBulletType(bu.type), 0)
 
     if (playerState.weapon != "none") {
-        playerState.weaponHealth -= gunDamage * 3
+        playerState.weaponHealth -= gunDamage * 4
         if (playerState.weaponHealth < 0) {
             playerState.weapon = "none"
             if (!playerState.trinkets.includes(playerState.pendingTrinket)) {
@@ -229,20 +229,7 @@ const stateUpdater: StateUpdater<State> = (state: State, events: Set<string | sy
 
     const newDrops: Drop[] = enemies
         .filter(en => en.health <= 0).filter(() => Math.random() > 0.5)
-        .map(en => ({
-            pos: en.pos, type: pick<WeaponType>(["big-gun", "shotgun", "uzi"]), trinket: pick<TrinketType>([
-                "bible",
-                // "boom",
-                "bus",
-                // "explode",
-                "ghost",
-                "twins",
-                "passthrough",
-                "rubber",
-                // "selfie",
-                "swamp",
-            ])
-        }))
+        .map(en => getRandomDrop(en.pos))
 
     drops.push(...newDrops)
 
@@ -356,23 +343,23 @@ const canvas = document.getElementById('bge-canvas')! as HTMLCanvasElement
 canvas.width = screenWidth + baseSize
 canvas.height = screenHeight
 
-const initialState = generateRoom(0, 0, {
+const initialState = generateStartRoom({
     health: 100,
     pos: startPos,
     hurt: false,
     weapon: "none",
     weaponHealth: 100,
     trinkets: [
-        "bible",
-        // "boom",
-        "bus",
-        // "explode",
-        "ghost",
-        "twins",
-        "passthrough",
-        "rubber",
-        // "selfie",
-        "swamp",
+        // "bible",
+        // // "boom",
+        // "bus",
+        // // "explode",
+        // "ghost",
+        // "twins",
+        // "passthrough",
+        // "rubber",
+        // // "selfie",
+        // "swamp",
     ],
     pendingTrinket: "bible"
 })
@@ -380,6 +367,7 @@ const initialState = generateRoom(0, 0, {
 const startEvents = [
     { id: "generic-rapid", time: 0 },
     { id: "room-start-cooldown", time: 1 },
-    { id: "swamp", time: 1 }]
+    // { id: "swamp", time: 1 }
+]
 
 init(canvas, initialState, stateUpdater, stateDrawer, startEvents)

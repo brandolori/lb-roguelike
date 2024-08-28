@@ -32,13 +32,12 @@ const getBulletSize = (type: BulletType): number => {
     }
 }
 
-
 const getEnemyChar = (type: EnemyType): string => {
     switch (type) {
         case "slime": return "ç"
         case "fast-slime": return "Ç"
         case "turret": return "¡"
-        case "imp": return "£"
+        case "imp": return "#"
         case "rhino": return "§"
         default: return "?"
     }
@@ -110,7 +109,7 @@ export const stateDrawer = (state: State): Drawable[] => {
         ...dr.pos
     }))
 
-    const healthBlocks = Math.round(state.playerState.health / 100 * 8)
+    const healthBlocks = Math.round(Math.max(state.playerState.health, 0) / 100 * 8)
     const healthString = "[" + "■".repeat(healthBlocks) + " ".repeat(8 - healthBlocks) + "]"
     const healthDrawable: Drawable = {
         char: healthString,
@@ -120,7 +119,7 @@ export const stateDrawer = (state: State): Drawable[] => {
         y: state.playerState.pos.y + baseSize * .75
     }
 
-    const weaponHealthBlock = Math.round(state.playerState.weaponHealth / 100 * 8)
+    const weaponHealthBlock = Math.round(Math.max(state.playerState.weaponHealth, 0) / 100 * 8)
     const weaponHealthString = "[" + "■".repeat(weaponHealthBlock) + " ".repeat(8 - weaponHealthBlock) + "]"
     const weaponHealthDrawable: Drawable = {
         char: weaponHealthString,
