@@ -131,7 +131,8 @@ export const Vec2 = {
     down: { x: 0, y: 1 } as Vec2,
     zero: { x: 0, y: 0 } as Vec2,
     fromAngle: (amplitude: number): Vec2 => ({ x: Math.cos(amplitude), y: Math.sin(amplitude) }),
-    toAngle: (vec: Vec2): number => Math.atan2(vec.y, vec.x)
+    toAngle: (vec: Vec2): number => Math.atan2(vec.y, vec.x),
+    random: (l: number) => Vec2.mult(Vec2.fromAngle(Math.random() * Math.PI * 2), l)
 }
 
 export type Drawable = {

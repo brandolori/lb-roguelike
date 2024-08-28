@@ -6,7 +6,8 @@ export const getNewBullet = (position: Vec2, baseSpeed: Vec2, direction: Vec2, s
     pos: Vec2.sum(position, Vec2.mult(direction, baseSize / 2)),
     speed: Vec2.sum(Vec2.mult(direction, speed), baseSpeed),
     type,
-    enemy
+    enemy,
+    bounces: 0
 })
 
 export const randomizeVec2 = (source: Vec2, variation: number) => {

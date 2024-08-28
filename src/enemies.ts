@@ -1,7 +1,7 @@
 import { TimerRequest, Vec2, pick } from "./bge"
 import { baseSize, bulletSpeed, screenHeight, screenWidth } from "./constants"
 import { getNewBullet } from "./player"
-import { Bullet, Enemy, EnemyData, EnemyType, State } from "./types"
+import { Enemy, EnemyData, EnemyType, State } from "./types"
 
 export const getFreeRandomDirection = (starting: Vec2, obstacles: Vec2[]) => {
     for (let index = 0; index < 10; index++) {
@@ -147,7 +147,6 @@ export const enemyUpdate = (en: Enemy, state: State, events: Set<symbol | string
         }
     }
     if (en.type == "rhino" && en.state != "paused" && events.has(en.symbol)) {
-
         newTimers.push({ id: en.symbol, time: en.state == "idle" ? 1 : Math.random() * 5 + 1 })
         return {
             ...en,

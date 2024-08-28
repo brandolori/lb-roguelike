@@ -41,7 +41,8 @@ export const generateRoom = (roomIndex: number, levelIndex: number, playerState:
         drops: [],
         roomIndex: roomIndex,
         levelIndex: levelIndex,
-        bible: 0
+        bible: 0,
+        caltrops: []
     }
 
     return initialState

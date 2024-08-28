@@ -7,6 +7,12 @@ type Bullet = {
     speed: Vec2
     type: BulletType
     enemy: boolean
+    bounces: number
+}
+
+type Caltrop = {
+    pos: Vec2
+    age: number
 }
 
 type ObstacleType = "wall1" | "wall2" | "wall3" | "block" | "door"
@@ -63,6 +69,7 @@ type State = {
     levelIndex: number
     roomIndex: number
     bible: number
+    caltrops: Caltrop[]
 }
 
 type TrinketType = "explode" | "thorns" | "twins" | "rubber" | "bible" | "passthrough" | "ghost" | "swamp" | "bus" | "selfie" | "boom"

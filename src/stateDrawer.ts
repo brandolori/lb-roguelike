@@ -103,20 +103,12 @@ export const stateDrawer = (state: State): Drawable[] => {
         ...os.pos
     }))
 
-    const dropDrawables: Drawable[] = state.drops.flatMap((dr): Drawable[] => ([
-        // {
-        //     char: getTrinketChar(dr.trinket),
-        //     ...dr.pos,
-        //     size: baseSize,
-        //     color: dropColor
-        // }, 
-        {
-            char: getDropSprite(dr.type) + getTrinketChar(dr.trinket),
-            color: dropColor,
-            size: baseSize / 2,
-            ...dr.pos
-        }
-    ]))
+    const dropDrawables: Drawable[] = state.drops.flatMap((dr): Drawable => ({
+        char: getDropSprite(dr.type) + getTrinketChar(dr.trinket),
+        color: dropColor,
+        size: baseSize / 2,
+        ...dr.pos
+    }))
 
     const healthBlocks = Math.round(state.playerState.health / 100 * 8)
     const healthString = "[" + "■".repeat(healthBlocks) + " ".repeat(8 - healthBlocks) + "]"
@@ -146,6 +138,14 @@ export const stateDrawer = (state: State): Drawable[] => {
         y: (i + 0.5) * baseSize
     }))
 
+    const pendingTrinketDrawable: Drawable = {
+        char: getTrinketChar(state.playerState.pendingTrinket),
+        color: state.playerState.weapon != "none" ? "black" : "transparent",
+        size: baseSize * .75 + Math.sin(Date.now() / 125) * baseSize / 12,
+        x: screenWidth + baseSize / 2,
+        y: (state.playerState.trinkets.length + 0.5) * baseSize
+    }
+
     const bibleDrawable: Drawable = {
         char: getTrinketChar("bible"),
         color: state.playerState.trinkets.includes("bible") ? "black" : "#00000000",
@@ -160,15 +160,24 @@ export const stateDrawer = (state: State): Drawable[] => {
         ...getGhostPosition(state.playerState.pos),
     }
 
+    const caltropDrawables: Drawable[] = state.caltrops.map(cl => ({
+        ...cl.pos,
+        char: "▴",
+        color: playerColor,
+        size: baseSize * .5,
+    }))
+
     return [
         ...dropDrawables,
         ...obstacleDrawable,
+        ...caltropDrawables,
         ...enemiesDrawables,
         playerDrawable,
         healthDrawable,
         weaponHealthDrawable,
         ...bulletDrawables,
         ...trinketDrawables,
+        pendingTrinketDrawable,
         bibleDrawable,
         ghostDrawable
     ]

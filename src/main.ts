@@ -1,4 +1,4 @@
-import { Bullet, Drop, Enemy, State, TrinketType, WeaponType } from "./types"
+import { Bullet, Caltrop, Drop, Enemy, State, TrinketType, WeaponType } from "./types"
 import { StateUpdater, init, Vec2, TimerRequest, pick } from './bge'
 import "./style.css"
 import { stateDrawer } from "./stateDrawer"
@@ -16,6 +16,7 @@ const stateUpdater: StateUpdater<State> = (state: State, events: Set<string | sy
     let enemies = [...state.enemies]
     let bullets = [...state.bullets]
     let drops = [...state.drops]
+    let caltrops = [...state.caltrops]
 
     const newTimers: TimerRequest[] = []
 
@@ -42,6 +43,20 @@ const stateUpdater: StateUpdater<State> = (state: State, events: Set<string | sy
         } else {
             playerState.health -= 5 * deltaTime
         }
+    }
+
+    // swamp (caltrops)
+    caltrops = caltrops.map(cl => ({ ...cl, age: cl.age += deltaTime })).filter(cl => cl.age < 8)
+
+    if (events.has("swamp")) {
+        const caltropPositions: Vec2[] = [
+            playerState.pos,
+            Vec2.sum(playerState.pos, Vec2.random(baseSize / 3)),
+            Vec2.sum(playerState.pos, Vec2.random(baseSize / 3)),
+        ]
+        const newCaltrops: Caltrop[] = caltropPositions.map(ps => ({ age: 0, pos: ps }))
+        caltrops = caltrops.concat(newCaltrops)
+        newTimers.push({ id: "swamp", time: 1 })
     }
 
     // player shooting
@@ -147,7 +162,11 @@ const stateUpdater: StateUpdater<State> = (state: State, events: Set<string | sy
             ...obstacles.map(en => en.pos)
         ]
 
-        const newPos = tryMove(en.pos, movement, occupiedPositions)
+        const isOverCaltrop = caltrops.find(cl => Vec2.squareCollision(cl.pos, en.pos, baseSize))
+
+        const caltropSpeedMult = isOverCaltrop ? .5 : 1
+
+        const newPos = tryMove(en.pos, Vec2.mult(movement, caltropSpeedMult), occupiedPositions)
 
         return {
             ...en,
@@ -173,7 +192,7 @@ const stateUpdater: StateUpdater<State> = (state: State, events: Set<string | sy
     enemies = enemies.map(en => {
         const bulletDamage = collisions.filter(co => co[1] == en).reduce((sum, co) => sum + getDamageFromBulletType(co[0].type), 0)
 
-        const bibleDamage = playerState.trinkets.includes("bible") && Vec2.squareCollision(getBiblePosition(playerState.pos, bible), en.pos, baseSize)
+        const bibleDamage = playerState.trinkets.includes("bible") && Vec2.squareCollision(getBiblePosition(playerState.pos, bible), en.pos, baseSize * 2)
             ? 16 * deltaTime
             : 0
 
@@ -199,7 +218,12 @@ const stateUpdater: StateUpdater<State> = (state: State, events: Set<string | sy
         playerState.weaponHealth -= gunDamage * 3
         if (playerState.weaponHealth < 0) {
             playerState.weapon = "none"
-            playerState.trinkets = [...playerState.trinkets, playerState.pendingTrinket]
+            if (!playerState.trinkets.includes(playerState.pendingTrinket)) {
+                playerState.trinkets = [...playerState.trinkets, playerState.pendingTrinket]
+                if (playerState.pendingTrinket == "swamp") {
+                    newTimers.push({ id: "swamp", time: 1 })
+                }
+            }
         }
     }
 
@@ -216,8 +240,7 @@ const stateUpdater: StateUpdater<State> = (state: State, events: Set<string | sy
                 "passthrough",
                 "rubber",
                 // "selfie",
-                // "swamp",
-                // "thorns"
+                "swamp",
             ])
         }))
 
@@ -238,12 +261,13 @@ const stateUpdater: StateUpdater<State> = (state: State, events: Set<string | sy
             return bu
         }
 
-        if (!bu.enemy && hasRubber) {
+        if (!bu.enemy && hasRubber && bu.bounces < 2) {
             const xDistance = Math.abs(bu.pos.x - collision.os.pos.x)
             const yDistance = Math.abs(bu.pos.y - collision.os.pos.y)
 
             return {
                 ...bu,
+                bounces: bu.bounces + 1,
                 speed: yDistance > xDistance
                     ? { x: bu.speed.x, y: -bu.speed.y }
                     : { x: -bu.speed.x, y: bu.speed.y }
@@ -274,8 +298,6 @@ const stateUpdater: StateUpdater<State> = (state: State, events: Set<string | sy
     if (playerState.health < 1) {
         location.reload()
     }
-
-
 
     // player/drop collisions
     const collidedDrop = drops.find(dr => Vec2.squareCollision(dr.pos, playerState.pos, baseSize))
@@ -324,7 +346,8 @@ const stateUpdater: StateUpdater<State> = (state: State, events: Set<string | sy
             enemies: enemies,
             drops,
             canShoot: canShootInFrame && !hasShot,
-            bible: (bible + deltaTime * 2) % (Math.PI * 2)
+            bible: (bible + deltaTime * 2) % (Math.PI * 2),
+            caltrops
         }
     }
 }
@@ -340,11 +363,23 @@ const initialState = generateRoom(0, 0, {
     weapon: "none",
     weaponHealth: 100,
     trinkets: [
-        // "bible", "twins", "ghost", "passthrough", "bus", "rubber"
+        "bible",
+        // "boom",
+        "bus",
+        // "explode",
+        "ghost",
+        "twins",
+        "passthrough",
+        "rubber",
+        // "selfie",
+        "swamp",
     ],
     pendingTrinket: "bible"
 })
 
-const startEvents = [{ id: "generic-rapid", time: 0 }, { id: "room-start-cooldown", time: 1 }]
+const startEvents = [
+    { id: "generic-rapid", time: 0 },
+    { id: "room-start-cooldown", time: 1 },
+    { id: "swamp", time: 1 }]
 
 init(canvas, initialState, stateUpdater, stateDrawer, startEvents)
