@@ -1,7 +1,7 @@
 export const playerColor = "#000000"
 export const ghostColor = "#00000080"
-export const enemyColor = "#720714"
-export const hurtColor = "#FF4500"
+export const enemyColor = "red"
+export const hurtColor = "pink"
 export const dropColor = "green"
 
 export const playerSpeed = 80

@@ -6,7 +6,7 @@ import { baseSize, screenWidth, playerSpeed, bulletSpeed, screenHeight, roomsInL
 import { enemyUpdate, enemyBullets } from "./enemies"
 import { tryMove } from "./tryMove"
 import { generateRoom, generateStartRoom } from "./levels"
-import { getNewBullet, getShotgunBullet, getDamageFromBulletType, randomizeVec2, getBiblePosition, getShootingCooldownFromGun, getGhostPosition, getRandomDrop } from "./player"
+import { getNewBullet, getShotgunBullet, getDamageFromBulletType, randomizeVec2, getBiblePosition, getShootingCooldownFromGun, getGhostPosition, getRandomDrop, getBible2Position } from "./player"
 
 const stateUpdater: StateUpdater<State> = (state: State, events: Set<string | symbol>, deltaTime: number) => {
     // unpack
@@ -91,7 +91,14 @@ const stateUpdater: StateUpdater<State> = (state: State, events: Set<string | sy
                     newPlayerBullets.push(getNewBullet(playerState.pos, playerOffset, shootingDirection, bulletSpeed, "big", false))
                 }
                 else if (playerState.weapon == "uzi") {
-                    newPlayerBullets.push(getNewBullet(playerState.pos, playerOffset, randomizeVec2(shootingDirection, .2), bulletSpeed * 1.5, "small", false))
+                    newPlayerBullets.push(getNewBullet(playerState.pos, playerOffset, randomizeVec2(shootingDirection, .15), bulletSpeed * 1.5, "small", false))
+                }
+                else if (playerState.weapon == "glock") {
+                    newPlayerBullets.push(
+                        getNewBullet(playerState.pos, playerOffset, randomizeVec2(shootingDirection, .05), bulletSpeed * 2, "small", false),
+                        getNewBullet(Vec2.sum(playerState.pos, Vec2.mult(shootingDirection, baseSize / 2)), playerOffset, randomizeVec2(shootingDirection, .05), bulletSpeed * 2, "small", false),
+                        getNewBullet(Vec2.sum(playerState.pos, Vec2.mult(shootingDirection, baseSize)), playerOffset, randomizeVec2(shootingDirection, .05), bulletSpeed * 2, "small", false),
+                    )
                 }
                 else if (playerState.weapon == "shotgun") {
                     newPlayerBullets.push(
@@ -196,11 +203,15 @@ const stateUpdater: StateUpdater<State> = (state: State, events: Set<string | sy
             ? 16 * deltaTime
             : 0
 
+        const bible2Damage = playerState.trinkets.includes("bible2") && Vec2.squareCollision(getBible2Position(playerState.pos, bible), en.pos, baseSize * 2)
+            ? 16 * deltaTime
+            : 0
+
         const ghostDamage = playerState.trinkets.includes("ghost") && Vec2.squareCollision(getGhostPosition(playerState.pos), en.pos, baseSize)
             ? 16 * deltaTime
             : 0
 
-        const totalDamage = bulletDamage + bibleDamage + ghostDamage
+        const totalDamage = bulletDamage + bibleDamage + bible2Damage + ghostDamage
 
         if (totalDamage > 0 && !en.hurt) {
             newTimers.push({ id: en.hurtSymbol, time: .125 })
@@ -229,7 +240,7 @@ const stateUpdater: StateUpdater<State> = (state: State, events: Set<string | sy
 
     const newDrops: Drop[] = enemies
         .filter(en => en.health <= 0).filter(() => Math.random() > 0.5)
-        .map(en => getRandomDrop(en.pos))
+        .map(en => getRandomDrop(en.pos, playerState.trinkets))
 
     drops.push(...newDrops)
 

@@ -3,7 +3,7 @@ import { Vec2, pick } from './bge'
 import { baseSize, bibleDistance, bulletSpeed, screenHeight, screenWidth } from "./constants"
 
 export const getNewBullet = (position: Vec2, baseSpeed: Vec2, direction: Vec2, speed: number, type: BulletType, enemy: boolean): Bullet => ({
-    pos: Vec2.sum(position, Vec2.mult(direction, baseSize / 2)),
+    pos: Vec2.sum(position, Vec2.mult(direction, baseSize / 4)),
     speed: Vec2.sum(Vec2.mult(direction, speed), baseSpeed),
     type,
     enemy,
@@ -29,7 +29,7 @@ export const getDamageFromBulletType = (type: BulletType) => {
         case "big":
             return 2
         case "shotgun":
-            return 1
+            return .75
     }
 }
 
@@ -38,16 +38,18 @@ export const getBiblePosition = (playerPos: Vec2, bibleAngle: number): Vec2 => (
     y: playerPos.y + Math.sin(bibleAngle) * bibleDistance,
 })
 
+export const getBible2Position = (playerPos: Vec2, bibleAngle: number): Vec2 => ({
+    x: playerPos.x + Math.cos(bibleAngle + Math.PI) * bibleDistance,
+    y: playerPos.y + Math.sin(bibleAngle + Math.PI) * bibleDistance,
+})
+
 export const getShootingCooldownFromGun = (type: WeaponType) => {
     switch (type) {
-        case "none":
-            return .3
-        case "big-gun":
-            return .2
-        case "shotgun":
-            return .75
-        case "uzi":
-            return .1
+        case "none": return .3
+        case "big-gun": return .2
+        case "shotgun": return .75
+        case "uzi": return .1
+        case "glock": return .3
     }
 }
 
@@ -56,19 +58,25 @@ export const getGhostPosition = (playerPos: Vec2): Vec2 => ({
     y: screenHeight - playerPos.y
 })
 
-export const getRandomDrop = (pos: Vec2) => ({
-    pos: pos,
-    type: pick<WeaponType>(["big-gun", "shotgun", "uzi"]),
-    trinket: pick<TrinketType>([
+export const getRandomDrop = (pos: Vec2, currentTrinkets: TrinketType[]) => {
+    const availableTrinkets: TrinketType[] = [
         "bible",
-        // "boom",
+        "bible2",
         "bus",
-        // "explode",
         "ghost",
         "twins",
         "passthrough",
         "rubber",
-        // "selfie",
         "swamp",
-    ])
-})
+    ]
+
+    if (currentTrinkets.includes("swamp")) {
+        availableTrinkets.push("swamp2")
+    }
+
+    return ({
+        pos: pos,
+        type: pick<WeaponType>(["big-gun", "shotgun", "uzi", "glock"]),
+        trinket: pick<TrinketType>(availableTrinkets)
+    })
+}

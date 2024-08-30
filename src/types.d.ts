@@ -41,7 +41,7 @@ type EnemyData = {
     constructor: (pos: Vec2) => Enemy
 }
 
-type WeaponType = "none" | "big-gun" | "shotgun" | "uzi"
+type WeaponType = "none" | "big-gun" | "shotgun" | "uzi" | "glock"
 
 type PlayerState = {
     pos: Vec2
@@ -72,4 +72,13 @@ type State = {
     caltrops: Caltrop[]
 }
 
-type TrinketType = "explode" | "thorns" | "twins" | "rubber" | "bible" | "passthrough" | "ghost" | "swamp" | "bus" | "selfie" | "boom"
+type TrinketType =
+    "twins" |
+    "rubber" |
+    "bible" |
+    "passthrough" |
+    "ghost" |
+    "swamp" |
+    "bus" |
+    "bible2" |
+    "swamp2"

@@ -1,7 +1,7 @@
 import { BulletType, EnemyType, ObstacleType, State, TrinketType, WeaponType } from "./types"
 import { Drawable } from './bge'
 import { baseSize, playerColor, enemyColor, hurtColor, dropColor, screenWidth, bibleDistance, ghostColor } from "./constants"
-import { getBiblePosition, getGhostPosition } from "./player"
+import { getBible2Position, getBiblePosition, getGhostPosition } from "./player"
 
 const getObstacleSprite = (type: ObstacleType): string => {
     switch (type) {
@@ -19,6 +19,7 @@ const getDropSprite = (type: WeaponType): string => {
         case "big-gun": return "£"
         case "shotgun": return "$"
         case "uzi": return "€"
+        case "glock": return "¥"
     }
 }
 
@@ -45,28 +46,15 @@ const getEnemyChar = (type: EnemyType): string => {
 
 const getTrinketChar = (type: TrinketType): string => {
     switch (type) {
-        case "explode":
-            return "💥"
-        case "thorns":
-            return "🌹"
-        case "twins":
-            return "👬"
-        case "rubber":
-            return "🎈"
-        case "bible":
-            return "📕"
-        case "passthrough":
-            return "🪟"
-        case "ghost":
-            return "👻"
-        case "swamp":
-            return "🐸"
-        case "bus":
-            return "🚌"
-        case "selfie":
-            return "📷"
-        case "boom":
-            return "💣"
+        case "twins": return "👬"
+        case "rubber": return "🎈"
+        case "bible": return "📕"
+        case "bible2": return "📘"
+        case "passthrough": return "🪟"
+        case "ghost": return "👻"
+        case "swamp": return "🐸"
+        case "swamp2": return "🦎"
+        case "bus": return "🚌"
     }
 }
 
@@ -123,7 +111,7 @@ export const stateDrawer = (state: State): Drawable[] => {
     const weaponHealthString = "[" + "■".repeat(weaponHealthBlock) + " ".repeat(8 - weaponHealthBlock) + "]"
     const weaponHealthDrawable: Drawable = {
         char: weaponHealthString,
-        color: state.playerState.weapon != "none" ? "#30300080" : "#00000000",
+        color: state.playerState.weapon != "none" ? "#30300080" : "transparent",
         size: baseSize / 5,
         x: state.playerState.pos.x,
         y: state.playerState.pos.y + baseSize
@@ -147,15 +135,22 @@ export const stateDrawer = (state: State): Drawable[] => {
 
     const bibleDrawable: Drawable = {
         char: getTrinketChar("bible"),
-        color: state.playerState.trinkets.includes("bible") ? "black" : "#00000000",
+        color: state.playerState.trinkets.includes("bible") ? "black" : "transparent",
         size: baseSize * .75,
         ...getBiblePosition(state.playerState.pos, state.bible)
+    }
+
+    const bible2Drawable: Drawable = {
+        char: getTrinketChar("bible2"),
+        color: state.playerState.trinkets.includes("bible2") ? "black" : "transparent",
+        size: baseSize * .75,
+        ...getBible2Position(state.playerState.pos, state.bible)
     }
 
     const ghostDrawable: Drawable = {
         char: getDropSprite(state.playerState.weapon),
         size: baseSize,
-        color: state.playerState.trinkets.includes("ghost") ? ghostColor : "#00000000",
+        color: state.playerState.trinkets.includes("ghost") ? ghostColor : "transparent",
         ...getGhostPosition(state.playerState.pos),
     }
 
@@ -178,6 +173,7 @@ export const stateDrawer = (state: State): Drawable[] => {
         ...trinketDrawables,
         pendingTrinketDrawable,
         bibleDrawable,
+        bible2Drawable,
         ghostDrawable
     ]
 }
