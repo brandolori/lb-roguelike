@@ -7,7 +7,7 @@ type Bullet = {
     speed: Vec2
     type: BulletType
     enemy: boolean
-    bounces: number
+    lifetime: number
 }
 
 type Caltrop = {

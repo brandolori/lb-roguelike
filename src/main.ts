@@ -1,8 +1,8 @@
-import { Bullet, Caltrop, Drop, Enemy, State, TrinketType, WeaponType } from "./types"
-import { StateUpdater, init, Vec2, TimerRequest, pick } from './bge'
+import { Bullet, Caltrop, Drop, Enemy, State } from "./types"
+import { StateUpdater, init, Vec2, TimerRequest } from './bge'
 import "./style.css"
 import { stateDrawer } from "./stateDrawer"
-import { baseSize, screenWidth, playerSpeed, bulletSpeed, screenHeight, roomsInLevel, startPos } from "./constants"
+import { baseSize, screenWidth, playerSpeed, bulletSpeed, screenHeight, roomsInLevel, playerStartPos, enemyBulletDamage, playerDamageCooldown, busHealthLoss, busHealthGain, bulletMaxLifetime } from "./constants"
 import { enemyUpdate, enemyBullets } from "./enemies"
 import { tryMove } from "./tryMove"
 import { generateRoom, generateStartRoom } from "./levels"
@@ -39,9 +39,9 @@ const stateUpdater: StateUpdater<State> = (state: State, events: Set<string | sy
 
     if (playerState.trinkets.includes("bus")) {
         if (Vec2.distance(playerStartPosition, playerState.pos) > 0.1) {
-            playerState.health = Math.min(playerState.health + 2 * deltaTime, 100)
+            playerState.health = Math.min(playerState.health + busHealthGain * deltaTime, 100)
         } else {
-            playerState.health -= 5 * deltaTime
+            playerState.health -= busHealthLoss * deltaTime
         }
     }
 
@@ -244,17 +244,24 @@ const stateUpdater: StateUpdater<State> = (state: State, events: Set<string | sy
     bullets = bullets.map(bu => {
         const collision = wallCollisions.find(co => co.bu == bu)
 
-        if (!collision) {
-            return bu
+        if (bu.lifetime > bulletMaxLifetime) {
+            return null
         }
 
-        if (!bu.enemy && hasRubber && bu.bounces < 2) {
+        if (!collision) {
+            return {
+                ...bu,
+                lifetime: bu.lifetime + deltaTime
+            }
+        }
+
+        if (!bu.enemy && hasRubber) {
             const xDistance = Math.abs(bu.pos.x - collision.os.pos.x)
             const yDistance = Math.abs(bu.pos.y - collision.os.pos.y)
 
             return {
                 ...bu,
-                bounces: bu.bounces + 1,
+                lifetime: bu.lifetime + deltaTime,
                 speed: yDistance > xDistance
                     ? { x: bu.speed.x, y: -bu.speed.y }
                     : { x: -bu.speed.x, y: bu.speed.y }
@@ -277,8 +284,8 @@ const stateUpdater: StateUpdater<State> = (state: State, events: Set<string | sy
 
     // player damage
     if ((playerCollisions.length > 0 || enemyPlayerCollisions.length > 0) && !playerState.hurt) {
-        playerState.health -= 25
-        newTimers.push({ id: "hurt-cooldown", time: .25 })
+        playerState.health -= enemyBulletDamage
+        newTimers.push({ id: "hurt-cooldown", time: playerDamageCooldown })
         playerState.hurt = true
     }
 
@@ -345,7 +352,7 @@ canvas.height = screenHeight
 
 const initialState = generateStartRoom({
     health: 100,
-    pos: startPos,
+    pos: playerStartPos,
     hurt: false,
     weapon: "none",
     weaponHealth: 100,

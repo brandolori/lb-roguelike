@@ -107,7 +107,7 @@ const drawCharactersOnCanvas = (canvas: HTMLCanvasElement, drawables: Drawable[]
         const centeredY = y + textHeight / 2
 
         // Disegna il carattere alla posizione centrata
-        ctx.fillText(char, Math.round(centeredX), Math.round(centeredY))
+        ctx.fillText(char, centeredX, centeredY)
     })
 }
 

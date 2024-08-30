@@ -1,5 +1,4 @@
-import { Vec2 } from "./bge"
-import { baseSize, screenHeight, screenWidth, startPos } from "./constants"
+import { baseSize, screenHeight, screenWidth, playerStartPos } from "./constants"
 import { getRandomEnemies } from "./enemies"
 import { getRandomDrop } from "./player"
 import { getRandomRoom, getWalls } from "./rooms"
@@ -9,7 +8,7 @@ const levels: { walls: ObstacleType; enemyTypes: EnemyType[]; name: string, diff
     {
         name: "Level 1",
         walls: "wall1",
-        enemyTypes: ["slime", "turret"],
+        enemyTypes: ["slime", "imp"],
         difficulties: [5, 6, 7, 8, 9],
     },
     {
@@ -34,11 +33,11 @@ export const generateRoom = (roomIndex: number, levelIndex: number, playerState:
     const initialState: State = {
         playerState: {
             ...playerState,
-            pos: startPos
+            pos: playerStartPos
         },
         canShoot: true,
         bullets: [],
-        enemies: getRandomEnemies(startPos, newRoom.map(os => os.pos), levelData.enemyTypes, levelData.difficulties[roomIndex]),
+        enemies: getRandomEnemies(playerStartPos, newRoom.map(os => os.pos), levelData.enemyTypes, levelData.difficulties[roomIndex]),
         obstacles: newRoom,
         drops: [],
         roomIndex: roomIndex,
@@ -58,7 +57,7 @@ export const generateStartRoom = (playerState: PlayerState) => {
     const initialState: State = {
         playerState: {
             ...playerState,
-            pos: startPos
+            pos: playerStartPos
         },
         canShoot: true,
         bullets: [],
