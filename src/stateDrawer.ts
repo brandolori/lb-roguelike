@@ -169,7 +169,7 @@ export const stateDrawer = (state: State): Drawable[] => {
         char: getTrinketChar("tombstone"),
         color: "black",
         size: baseSize * .75,
-        ...ts
+        ...ts.pos
     }))
 
     return [

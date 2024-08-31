@@ -59,6 +59,11 @@ type Drop = {
     trinket: TrinketType
 }
 
+type Tombstone = {
+    pos: Vec2
+    lifetime: number
+}
+
 type State = {
     playerState: PlayerState
     canShoot: boolean
@@ -70,7 +75,7 @@ type State = {
     roomIndex: number
     bible: number
     caltrops: Caltrop[]
-    tombstones: Vec2[]
+    tombstones: Tombstone[]
 }
 
 type TrinketType =

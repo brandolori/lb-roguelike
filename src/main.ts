@@ -2,7 +2,7 @@ import { Bullet, Caltrop, Drop, Enemy, State } from "./types"
 import { StateUpdater, init, Vec2, TimerRequest } from './bge'
 import "./style.css"
 import { stateDrawer } from "./stateDrawer"
-import { baseSize, screenWidth, playerSpeed, bulletSpeed, screenHeight, roomsInLevel, playerStartPos, enemyBulletDamage, playerDamageCooldown, busHealthLoss, busHealthGain, bulletMaxLifetime, rocketPeriod } from "./constants"
+import { baseSize, screenWidth, playerSpeed, bulletSpeed, screenHeight, roomsInLevel, playerStartPos, enemyBulletDamage, playerDamageCooldown, busHealthLoss, busHealthGain, bulletMaxLifetime, rocketPeriod, tombstoneLifetime } from "./constants"
 import { enemyUpdate, enemyBullets } from "./enemies"
 import { tryMove } from "./tryMove"
 import { generateRoom, generateStartRoom } from "./levels"
@@ -46,12 +46,16 @@ const stateUpdater: StateUpdater<State> = (state: State, events: Set<string | sy
         }
     }
 
-    // tombstone life
+    // tombstone
 
-    const notCollidingTombstones = tombstones.filter(ts => !Vec2.squareCollision(ts, playerState.pos, baseSize))
+    const notCollidingTombstones = tombstones.filter(ts => !Vec2.squareCollision(ts.pos, playerState.pos, baseSize))
     playerState.health = Math.min(playerState.health + (tombstones.length - notCollidingTombstones.length) * 5, 100)
 
     tombstones = notCollidingTombstones
+        .map(ts => ({ ...ts, lifetime: ts.lifetime + deltaTime }))
+        .filter(ts => {
+            return ts.lifetime < tombstoneLifetime
+        })
 
     // swamp (caltrops)
     caltrops = caltrops.map(cl => ({ ...cl, age: cl.age += deltaTime })).filter(cl => cl.age < 8)
@@ -273,7 +277,10 @@ const stateUpdater: StateUpdater<State> = (state: State, events: Set<string | sy
     drops.push(...newDrops)
 
     if (playerState.trinkets.includes("tombstone")) {
-        const newTombstones = enemies.filter(en => en.health <= 0).filter(en => !deadEnemiesToDrop.includes(en)).map(en => en.pos)
+        const newTombstones = enemies.filter(en => en.health <= 0).filter(en => !deadEnemiesToDrop.includes(en)).map(en => ({
+            pos: en.pos,
+            lifetime: 0
+        }))
         tombstones.push(...newTombstones)
     }
     enemies = enemies.filter(en => en.health > 0)
@@ -412,7 +419,7 @@ const initialState = generateStartRoom({
         // "selfie",
         // "swamp",
         // "rocket"
-        // "tombstone"
+        "tombstone"
     ],
     pendingTrinket: "bible"
 })
