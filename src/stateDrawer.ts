@@ -1,6 +1,6 @@
 import { BulletType, EnemyType, ObstacleType, State, TrinketType, WeaponType } from "./types"
 import { Drawable } from './bge'
-import { baseSize, playerColor, enemyColor, hurtColor, dropColor, screenWidth, bibleDistance, ghostColor } from "./constants"
+import { baseSize, playerColor, enemyColor, hurtColor, dropColor, screenWidth, ghostColor } from "./constants"
 import { getBible2Position, getBiblePosition, getGhostPosition } from "./player"
 
 const getObstacleSprite = (type: ObstacleType): string => {
@@ -29,7 +29,8 @@ const getBulletSize = (type: BulletType): number => {
         case "normal": return 1
         case "small": return 0.75
         case "shotgun": return 0.75
-        default: return 1 // Valore di default per i tipi non riconosciuti
+        case "rocket": return .5
+        default: return 1
     }
 }
 
@@ -67,7 +68,9 @@ export const stateDrawer = (state: State): Drawable[] => {
     }
 
     const bulletDrawables: Drawable[] = state.bullets.map(bu => ({
-        char: bu.enemy ? "✦" : "•",
+        char: bu.type == "rocket"
+            ? "🚀"
+            : bu.enemy ? "✦" : "•",
         color: bu.enemy ? enemyColor : playerColor,
         size: baseSize * getBulletSize(bu.type) * (bu.enemy ? .50 : 1),
         x: bu.pos.x,

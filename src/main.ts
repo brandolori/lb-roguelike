@@ -2,7 +2,7 @@ import { Bullet, Caltrop, Drop, Enemy, State } from "./types"
 import { StateUpdater, init, Vec2, TimerRequest } from './bge'
 import "./style.css"
 import { stateDrawer } from "./stateDrawer"
-import { baseSize, screenWidth, playerSpeed, bulletSpeed, screenHeight, roomsInLevel, playerStartPos, enemyBulletDamage, playerDamageCooldown, busHealthLoss, busHealthGain, bulletMaxLifetime } from "./constants"
+import { baseSize, screenWidth, playerSpeed, bulletSpeed, screenHeight, roomsInLevel, playerStartPos, enemyBulletDamage, playerDamageCooldown, busHealthLoss, busHealthGain, bulletMaxLifetime, rocketPeriod } from "./constants"
 import { enemyUpdate, enemyBullets } from "./enemies"
 import { tryMove } from "./tryMove"
 import { generateRoom, generateStartRoom } from "./levels"
@@ -51,8 +51,10 @@ const stateUpdater: StateUpdater<State> = (state: State, events: Set<string | sy
     if (events.has("swamp")) {
         const caltropPositions: Vec2[] = [
             playerState.pos,
-            Vec2.sum(playerState.pos, Vec2.random(baseSize / 3)),
-            Vec2.sum(playerState.pos, Vec2.random(baseSize / 3)),
+            Vec2.sum(playerState.pos, Vec2.random(baseSize / 2)),
+            Vec2.sum(playerState.pos, Vec2.random(baseSize / 2)),
+            Vec2.sum(playerState.pos, Vec2.random(baseSize / 2)),
+            Vec2.sum(playerState.pos, Vec2.random(baseSize / 2)),
         ]
         const newCaltrops: Caltrop[] = caltropPositions.map(ps => ({ age: 0, pos: ps }))
         caltrops = caltrops.concat(newCaltrops)
@@ -118,14 +120,13 @@ const stateUpdater: StateUpdater<State> = (state: State, events: Set<string | sy
         }
     }
 
-
     if (events.has("rocket")) {
         const closestEnemy = enemies.map(en => ({ enemy: en, distance: Vec2.distance(en.pos, playerState.pos) })).sort((a, b) => a.distance - b.distance)[0]
 
         if (closestEnemy) {
-            getNewBullet(playerState.pos, Vec2.zero, Vec2.normalize(Vec2.sub(playerState.pos, closestEnemy.enemy.pos)), bulletSpeed * 2, "rocket", false),
+            newPlayerBullets.push(getNewBullet(playerState.pos, Vec2.zero, Vec2.normalize(Vec2.sub(closestEnemy.enemy.pos, playerState.pos)), bulletSpeed, "rocket", false))
         }
-
+        newTimers.push({ id: "rocket", time: rocketPeriod })
     }
 
     const validNewPlayerBullets = newPlayerBullets.filter(bu => obstacles.every(os => !Vec2.squareCollision(bu.pos, os.pos, baseSize)))
@@ -136,7 +137,11 @@ const stateUpdater: StateUpdater<State> = (state: State, events: Set<string | sy
     // shotgun bullets
     bullets = bullets.map(bu => ({
         ...bu,
-        speed: bu.type == "shotgun" ? Vec2.mult(bu.speed, 1 - Math.min(deltaTime * 4, 1)) : bu.speed
+        speed: bu.type == "shotgun"
+            ? Vec2.mult(bu.speed, 1 - Math.min(deltaTime * 4, 1))
+            : bu.type == "rocket"
+                ? Vec2.sum(bu.speed, Vec2.mult(Vec2.normalize(bu.speed), deltaTime * 500))
+                : bu.speed
     }))
         .filter(bu => !(bu.type == "shotgun" && Vec2.distance(Vec2.zero, bu.speed) < baseSize * 3))
 
@@ -233,7 +238,7 @@ const stateUpdater: StateUpdater<State> = (state: State, events: Set<string | sy
         })
     })
 
-    const gunDamage = [...bulletsCollided].reduce((sum, bu) => sum + getDamageFromBulletType(bu.type), 0)
+    const gunDamage = [...bulletsCollided].filter(bu => bu.type != "rocket").reduce((sum, bu) => sum + getDamageFromBulletType(bu.type), 0)
 
     if (playerState.weapon != "none") {
         playerState.weaponHealth -= gunDamage * 4
@@ -246,7 +251,7 @@ const stateUpdater: StateUpdater<State> = (state: State, events: Set<string | sy
                     newTimers.push({ id: "swamp", time: 1 })
                 }
                 if (playerState.pendingTrinket == "rocket") {
-                    newTimers.push({ id: "rocket", time: 1 })
+                    newTimers.push({ id: "rocket", time: rocketPeriod })
                 }
             }
         }
@@ -280,7 +285,7 @@ const stateUpdater: StateUpdater<State> = (state: State, events: Set<string | sy
             }
         }
 
-        if (!bu.enemy && hasRubber) {
+        if (!bu.enemy && hasRubber && bu.type != "rocket") {
             const xDistance = Math.abs(bu.pos.x - collision.os.pos.x)
             const yDistance = Math.abs(bu.pos.y - collision.os.pos.y)
 
@@ -383,15 +388,16 @@ const initialState = generateStartRoom({
     weaponHealth: 100,
     trinkets: [
         // "bible",
-        // // "boom",
+        // "boom",
         // "bus",
-        // // "explode",
+        // "explode",
         // "ghost",
         // "twins",
         // "passthrough",
         // "rubber",
-        // // "selfie",
+        // "selfie",
         // "swamp",
+        // "rocket"
     ],
     pendingTrinket: "bible"
 })
@@ -399,7 +405,7 @@ const initialState = generateStartRoom({
 const startEvents = [
     { id: "generic-rapid", time: 0 },
     { id: "room-start-cooldown", time: 1 },
-    // { id: "swamp", time: 1 }
+    // { id: "rocket", time: 1 }
 ]
 
 init(canvas, initialState, stateUpdater, stateDrawer, startEvents)

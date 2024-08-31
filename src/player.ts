@@ -30,6 +30,8 @@ export const getDamageFromBulletType = (type: BulletType) => {
             return 2
         case "shotgun":
             return .75
+        case "rocket":
+            return 1
     }
 }
 

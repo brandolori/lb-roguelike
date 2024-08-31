@@ -20,3 +20,4 @@ export const bulletMaxLifetime = 2
 export const bibleDistance = baseSize * 2.5
 export const busHealthGain = 2
 export const busHealthLoss = 5
+export const rocketPeriod = 1
