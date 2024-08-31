@@ -70,7 +70,8 @@ export const getRandomDrop = (pos: Vec2) => {
         "passthrough",
         "rubber",
         "swamp",
-        "rocket"
+        "rocket",
+        "tombstone"
     ]
 
     return ({

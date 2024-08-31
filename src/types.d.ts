@@ -70,6 +70,7 @@ type State = {
     roomIndex: number
     bible: number
     caltrops: Caltrop[]
+    tombstones: Vec2[]
 }
 
 type TrinketType =
@@ -81,4 +82,5 @@ type TrinketType =
     "swamp" |
     "bus" |
     "bible2" |
-    "rocket"
+    "rocket" |
+    "tombstone"

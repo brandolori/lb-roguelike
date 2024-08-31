@@ -56,6 +56,7 @@ const getTrinketChar = (type: TrinketType): string => {
         case "swamp": return "🐸"
         case "bus": return "🚌"
         case "rocket": return "🚀"
+        case "tombstone": return "🪦"
     }
 }
 
@@ -164,6 +165,13 @@ export const stateDrawer = (state: State): Drawable[] => {
         size: baseSize * .5,
     }))
 
+    const tombstoneDrawables: Drawable[] = state.tombstones.map(ts => ({
+        char: getTrinketChar("tombstone"),
+        color: "black",
+        size: baseSize * .75,
+        ...ts
+    }))
+
     return [
         ...dropDrawables,
         ...obstacleDrawable,
@@ -174,6 +182,7 @@ export const stateDrawer = (state: State): Drawable[] => {
         weaponHealthDrawable,
         ...bulletDrawables,
         ...trinketDrawables,
+        ...tombstoneDrawables,
         pendingTrinketDrawable,
         bibleDrawable,
         bible2Drawable,

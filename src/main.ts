@@ -17,6 +17,7 @@ const stateUpdater: StateUpdater<State> = (state: State, events: Set<string | sy
     let bullets = [...state.bullets]
     let drops = [...state.drops]
     let caltrops = [...state.caltrops]
+    let tombstones = [...state.tombstones]
 
     const newTimers: TimerRequest[] = []
 
@@ -44,6 +45,13 @@ const stateUpdater: StateUpdater<State> = (state: State, events: Set<string | sy
             playerState.health -= busHealthLoss * deltaTime
         }
     }
+
+    // tombstone life
+
+    const notCollidingTombstones = tombstones.filter(ts => !Vec2.squareCollision(ts, playerState.pos, baseSize))
+    playerState.health = Math.min(playerState.health + (tombstones.length - notCollidingTombstones.length) * 5, 100)
+
+    tombstones = notCollidingTombstones
 
     // swamp (caltrops)
     caltrops = caltrops.map(cl => ({ ...cl, age: cl.age += deltaTime })).filter(cl => cl.age < 8)
@@ -257,12 +265,17 @@ const stateUpdater: StateUpdater<State> = (state: State, events: Set<string | sy
         }
     }
 
-    const newDrops: Drop[] = enemies
+    const deadEnemiesToDrop = enemies
         .filter(en => en.health <= 0).filter(() => Math.random() > 0.5)
-        .map(en => getRandomDrop(en.pos))
+
+    const newDrops: Drop[] = deadEnemiesToDrop.map(en => getRandomDrop(en.pos))
 
     drops.push(...newDrops)
 
+    if (playerState.trinkets.includes("tombstone")) {
+        const newTombstones = enemies.filter(en => en.health <= 0).filter(en => !deadEnemiesToDrop.includes(en)).map(en => en.pos)
+        tombstones.push(...newTombstones)
+    }
     enemies = enemies.filter(en => en.health > 0)
 
     // bullet/wall collisions
@@ -371,7 +384,8 @@ const stateUpdater: StateUpdater<State> = (state: State, events: Set<string | sy
             drops,
             canShoot: canShootInFrame && !hasShot,
             bible: (bible + deltaTime * 2) % (Math.PI * 2),
-            caltrops
+            caltrops,
+            tombstones
         }
     }
 }
@@ -398,6 +412,7 @@ const initialState = generateStartRoom({
         // "selfie",
         // "swamp",
         // "rocket"
+        // "tombstone"
     ],
     pendingTrinket: "bible"
 })

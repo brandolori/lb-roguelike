@@ -43,7 +43,8 @@ export const generateRoom = (roomIndex: number, levelIndex: number, playerState:
         roomIndex: roomIndex,
         levelIndex: levelIndex,
         bible: 0,
-        caltrops: []
+        caltrops: [],
+        tombstones: []
     }
 
     return initialState
@@ -63,11 +64,12 @@ export const generateStartRoom = (playerState: PlayerState) => {
         bullets: [],
         enemies: [],
         obstacles: newRoom,
-        drops: [...Array(3).keys()].map((_, i) => getRandomDrop({ x: screenWidth / 2 + (i - 1) * baseSize * 3, y: screenHeight / 2 }, [])),
+        drops: [...Array(3).keys()].map((_, i) => getRandomDrop({ x: screenWidth / 2 + (i - 1) * baseSize * 3, y: screenHeight / 2 })),
         roomIndex: -1,
         levelIndex: 0,
         bible: 0,
-        caltrops: []
+        caltrops: [],
+        tombstones: []
     }
 
     return initialState
