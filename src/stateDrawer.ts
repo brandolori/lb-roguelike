@@ -53,8 +53,8 @@ const getTrinketChar = (type: TrinketType): string => {
         case "passthrough": return "🪟"
         case "ghost": return "👻"
         case "swamp": return "🐸"
-        case "swamp2": return "🦎"
         case "bus": return "🚌"
+        case "rocket": return "🚀"
     }
 }
 

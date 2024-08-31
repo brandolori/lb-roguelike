@@ -58,7 +58,7 @@ export const getGhostPosition = (playerPos: Vec2): Vec2 => ({
     y: screenHeight - playerPos.y
 })
 
-export const getRandomDrop = (pos: Vec2, currentTrinkets: TrinketType[]) => {
+export const getRandomDrop = (pos: Vec2) => {
     const availableTrinkets: TrinketType[] = [
         "bible",
         "bible2",
@@ -68,11 +68,8 @@ export const getRandomDrop = (pos: Vec2, currentTrinkets: TrinketType[]) => {
         "passthrough",
         "rubber",
         "swamp",
+        "rocket"
     ]
-
-    if (currentTrinkets.includes("swamp")) {
-        availableTrinkets.push("swamp2")
-    }
 
     return ({
         pos: pos,

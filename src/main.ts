@@ -118,6 +118,16 @@ const stateUpdater: StateUpdater<State> = (state: State, events: Set<string | sy
         }
     }
 
+
+    if (events.has("rocket")) {
+        const closestEnemy = enemies.map(en => ({ enemy: en, distance: Vec2.distance(en.pos, playerState.pos) })).sort((a, b) => a.distance - b.distance)[0]
+
+        if (closestEnemy) {
+            getNewBullet(playerState.pos, Vec2.zero, Vec2.normalize(Vec2.sub(playerState.pos, closestEnemy.enemy.pos)), bulletSpeed * 2, "rocket", false),
+        }
+
+    }
+
     const validNewPlayerBullets = newPlayerBullets.filter(bu => obstacles.every(os => !Vec2.squareCollision(bu.pos, os.pos, baseSize)))
 
     // bullet movement
@@ -231,8 +241,12 @@ const stateUpdater: StateUpdater<State> = (state: State, events: Set<string | sy
             playerState.weapon = "none"
             if (!playerState.trinkets.includes(playerState.pendingTrinket)) {
                 playerState.trinkets = [...playerState.trinkets, playerState.pendingTrinket]
+
                 if (playerState.pendingTrinket == "swamp") {
                     newTimers.push({ id: "swamp", time: 1 })
+                }
+                if (playerState.pendingTrinket == "rocket") {
+                    newTimers.push({ id: "rocket", time: 1 })
                 }
             }
         }
@@ -240,7 +254,7 @@ const stateUpdater: StateUpdater<State> = (state: State, events: Set<string | sy
 
     const newDrops: Drop[] = enemies
         .filter(en => en.health <= 0).filter(() => Math.random() > 0.5)
-        .map(en => getRandomDrop(en.pos, playerState.trinkets))
+        .map(en => getRandomDrop(en.pos))
 
     drops.push(...newDrops)
 
