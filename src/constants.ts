@@ -7,6 +7,7 @@ export const dropColor = "green"
 export const playerSpeed = 80
 export const playerDamageCooldown = .25
 export const playerStartPos = { x: 324, y: 36 }
+export const dropHealthGain = 10
 
 export const bulletSpeed = 120
 export const baseSize = 24

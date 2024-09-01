@@ -2,7 +2,7 @@ import { Bullet, Caltrop, Drop, Enemy, State } from "./types"
 import { StateUpdater, init, Vec2, TimerRequest } from './bge'
 import "./style.css"
 import { stateDrawer } from "./stateDrawer"
-import { baseSize, screenWidth, playerSpeed, bulletSpeed, screenHeight, roomsInLevel, playerStartPos, enemyBulletDamage, playerDamageCooldown, busHealthLoss, busHealthGain, bulletMaxLifetime, rocketPeriod, tombstoneLifetime } from "./constants"
+import { baseSize, screenWidth, playerSpeed, bulletSpeed, screenHeight, roomsInLevel, playerStartPos, enemyBulletDamage, playerDamageCooldown, busHealthLoss, busHealthGain, bulletMaxLifetime, rocketPeriod, tombstoneLifetime, dropHealthGain } from "./constants"
 import { enemyUpdate, enemyBullets } from "./enemies"
 import { tryMove } from "./tryMove"
 import { generateRoom, generateStartRoom } from "./levels"
@@ -294,7 +294,7 @@ const stateUpdater: StateUpdater<State> = (state: State, events: Set<string | sy
     bullets = bullets.map(bu => {
         const collision = wallCollisions.find(co => co.bu == bu)
 
-        if (bu.lifetime > bulletMaxLifetime) {
+        if (!bu.enemy && bu.lifetime > bulletMaxLifetime) {
             return null
         }
 
@@ -350,6 +350,7 @@ const stateUpdater: StateUpdater<State> = (state: State, events: Set<string | sy
         playerState.weapon = collidedDrop.type
         playerState.weaponHealth = 100
         playerState.pendingTrinket = collidedDrop.trinket
+        playerState.health = Math.min(playerState.health + dropHealthGain, 100)
         drops = drops.filter(dr => dr != collidedDrop)
     }
 
@@ -419,7 +420,7 @@ const initialState = generateStartRoom({
         // "selfie",
         // "swamp",
         // "rocket"
-        "tombstone"
+        // "tombstone"
     ],
     pendingTrinket: "bible"
 })
