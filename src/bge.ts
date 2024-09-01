@@ -23,9 +23,13 @@ export const init = <T>(canvas: HTMLCanvasElement, initialState: T, stateUpdater
 
     const keyboardDict = {
         "w": "move-up",
+        "W": "move-up",
         "a": "move-left",
+        "A": "move-left",
         "s": "move-down",
+        "S": "move-down",
         "d": "move-right",
+        "D": "move-right",
         "ArrowLeft": "shoot-left",
         "ArrowUp": "shoot-up",
         "ArrowDown": "shoot-down",
