@@ -76,6 +76,7 @@ type State = {
     bible: number
     caltrops: Caltrop[]
     tombstones: Tombstone[]
+    won: boolean
 }
 
 type TrinketType =

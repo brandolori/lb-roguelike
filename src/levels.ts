@@ -11,24 +11,24 @@ const levels: { walls: ObstacleType; enemyTypes: EnemyType[]; name: string, diff
         enemyTypes: ["slime", "imp"],
         difficulties: [5, 6, 7, 8, 9],
     },
-    {
-        name: "Level 2",
-        walls: "wall2",
-        enemyTypes: ["fast-slime", "turret", "imp"],
-        difficulties: [10, 11, 12, 13, 14],
-    },
-    {
-        name: "Level 3",
-        walls: "wall3",
-        enemyTypes: ["fast-slime", "turret", "imp", "rhino"],
-        difficulties: [15, 16, 17, 18, 19],
-    },
+    // {
+    //     name: "Level 2",
+    //     walls: "wall2",
+    //     enemyTypes: ["fast-slime", "turret", "imp"],
+    //     difficulties: [10, 11, 12, 13, 14],
+    // },
+    // {
+    //     name: "Level 3",
+    //     walls: "wall3",
+    //     enemyTypes: ["fast-slime", "turret", "imp", "rhino"],
+    //     difficulties: [15, 16, 17, 18, 19],
+    // },
 ]
 
 export const generateRoom = (roomIndex: number, levelIndex: number, playerState: PlayerState) => {
     const levelData = levels[levelIndex]
 
-    const newRoom = getRandomRoom(levelData.walls)
+    const newRoom = levelData ? getRandomRoom(levelData.walls) : []
 
     const initialState: State = {
         playerState: {
@@ -37,20 +37,21 @@ export const generateRoom = (roomIndex: number, levelIndex: number, playerState:
         },
         canShoot: true,
         bullets: [],
-        enemies: getRandomEnemies(playerStartPos, newRoom.map(os => os.pos), levelData.enemyTypes, levelData.difficulties[roomIndex]),
+        enemies: levelData ? getRandomEnemies(playerStartPos, newRoom.map(os => os.pos), levelData.enemyTypes, levelData.difficulties[roomIndex]) : [],
         obstacles: newRoom,
         drops: [],
         roomIndex: roomIndex,
         levelIndex: levelIndex,
         bible: 0,
         caltrops: [],
-        tombstones: []
+        tombstones: [],
+        won: !levelData
     }
 
     return initialState
 }
 
-export const generateStartRoom = (playerState: PlayerState) => {
+export const getStartState = (playerState: PlayerState) => {
     const levelData = levels[0]
 
     const newRoom = getWalls(levelData.walls)
@@ -69,7 +70,8 @@ export const generateStartRoom = (playerState: PlayerState) => {
         levelIndex: 0,
         bible: 0,
         caltrops: [],
-        tombstones: []
+        tombstones: [],
+        won: false
     }
 
     return initialState

@@ -64,7 +64,7 @@ export const getRandomDrop = (pos: Vec2) => {
     const availableTrinkets: TrinketType[] = [
         "bible",
         "bible2",
-        "bus",
+        // "bus",
         "ghost",
         "twins",
         "passthrough",

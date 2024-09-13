@@ -5,7 +5,7 @@ import { stateDrawer } from "./stateDrawer"
 import { baseSize, screenWidth, playerSpeed, bulletSpeed, screenHeight, roomsInLevel, playerStartPos, enemyBulletDamage, playerDamageCooldown, busHealthLoss, busHealthGain, bulletMaxLifetime, rocketPeriod, tombstoneLifetime, dropHealthGain } from "./constants"
 import { enemyUpdate, enemyBullets } from "./enemies"
 import { tryMove } from "./tryMove"
-import { generateRoom, generateStartRoom } from "./levels"
+import { generateRoom, getStartState } from "./levels"
 import { getNewBullet, getShotgunBullet, getDamageFromBulletType, randomizeVec2, getBiblePosition, getShootingCooldownFromGun, getGhostPosition, getRandomDrop, getBible2Position } from "./player"
 
 const stateUpdater: StateUpdater<State> = (state: State, events: Set<string | symbol>, deltaTime: number) => {
@@ -402,7 +402,7 @@ const canvas = document.getElementById('bge-canvas')! as HTMLCanvasElement
 canvas.width = screenWidth + baseSize
 canvas.height = screenHeight
 
-const initialState = generateStartRoom({
+const initialState = getStartState({
     health: 100,
     pos: playerStartPos,
     hurt: false,
