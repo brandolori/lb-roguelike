@@ -1,4 +1,4 @@
-import { Bullet, Caltrop, Drop, Enemy, State } from "./types"
+import { Bullet, Caltrop, Drop, State } from "./types"
 import { StateUpdater, init, Vec2, TimerRequest } from './bge'
 import "./style.css"
 import { stateDrawer } from "./stateDrawer"
@@ -146,7 +146,7 @@ const stateUpdater: StateUpdater<State> = (state: State, events: Set<string | sy
     // bullet movement
     bullets = bullets.map(bu => ({ ...bu, pos: Vec2.sum(bu.pos, Vec2.mult(bu.speed, deltaTime)) }))
 
-    // shotgun bullets
+    // special bullets
     bullets = bullets.map(bu => ({
         ...bu,
         speed: bu.type == "shotgun"
@@ -217,14 +217,14 @@ const stateUpdater: StateUpdater<State> = (state: State, events: Set<string | sy
     bullets = [...bullets, ...validNewPlayerBullets, ...newEnemyBullets]
     const collisions = bullets
         .filter(bu => !bu.enemy)
-        .flatMap(bu => enemies.map(en => ([bu, en])))
-        .filter(co => Vec2.distance(co[0].pos, co[1].pos) <= baseSize / 2) as [Bullet, Enemy][]
-    const bulletsCollided = new Set(collisions.map(el => el[0]))
+        .flatMap(bu => enemies.map(en => ({ bullet: bu, enemy: en })))
+        .filter(co => Vec2.distance(co.bullet.pos, co.enemy.pos) <= baseSize / 2)
+    const bulletsCollided = new Set(collisions.map(el => el.bullet))
     bullets = bullets.filter(bu => !bulletsCollided.has(bu))
 
     // damage enemies
     enemies = enemies.map(en => {
-        const bulletDamage = collisions.filter(co => co[1] == en).reduce((sum, co) => sum + getDamageFromBulletType(co[0].type), 0)
+        const bulletDamage = collisions.filter(co => co.enemy == en).reduce((sum, co) => sum + getDamageFromBulletType(co.bullet.type), 0)
 
         const bibleDamage = playerState.trinkets.includes("bible") && Vec2.squareCollision(getBiblePosition(playerState.pos, bible), en.pos, baseSize * 2)
             ? 16 * deltaTime
