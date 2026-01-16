@@ -9,6 +9,14 @@ import { generateRoom, getStartState } from "./levels"
 import { getNewBullet, getShotgunBullet, getDamageFromBulletType, randomizeVec2, getBiblePosition, getShootingCooldownFromGun, getGhostPosition, getRandomDrop, getBible2Position } from "./player"
 
 const stateUpdater: StateUpdater<State> = (state: State, events: Set<string | symbol>, deltaTime: number) => {
+    // special cases
+    if (state.playerState.health == 0 || state.won) {
+        return {
+            state,
+            timers: []
+        }
+    }
+
     // unpack
     const { canShoot, obstacles, roomIndex, levelIndex, bible } = state
 
@@ -337,10 +345,6 @@ const stateUpdater: StateUpdater<State> = (state: State, events: Set<string | sy
         playerState.health -= enemyBulletDamage
         newTimers.push({ id: "hurt-cooldown", time: playerDamageCooldown })
         playerState.hurt = true
-    }
-
-    if (playerState.health < 1) {
-        location.reload()
     }
 
     // player/drop collisions

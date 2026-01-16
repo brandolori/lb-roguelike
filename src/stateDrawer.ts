@@ -61,6 +61,26 @@ const getTrinketChar = (type: TrinketType): string => {
 }
 
 export const stateDrawer = (state: State): Drawable[] => {
+    if (state.playerState.health == 0) {
+        const deathDrawable: Drawable = {
+            char: "You are dead.",
+            color: "black",
+            size: baseSize * 2,
+            x: screenWidth / 2,
+            y: screenHeight / 2
+        }
+        return [deathDrawable]
+    } else if (state.won) {
+        const winDrawable: Drawable = {
+            char: "You won!",
+            color: "black",
+            size: baseSize * 2,
+            x: screenWidth / 2,
+            y: screenHeight / 2
+        }
+        return [winDrawable]
+    }
+
     const playerDrawable = {
         ...state.playerState.pos,
         char: getDropSprite(state.playerState.weapon),
@@ -172,13 +192,7 @@ export const stateDrawer = (state: State): Drawable[] => {
         ...ts.pos
     }))
 
-    const winDrawable: Drawable = {
-        char: "You won!",
-        color: state.won ? "black" : "transparent",
-        size: baseSize * 2,
-        x: screenWidth / 2,
-        y: screenHeight / 2
-    }
+
 
     return [
         ...dropDrawables,
@@ -195,6 +209,5 @@ export const stateDrawer = (state: State): Drawable[] => {
         bibleDrawable,
         bible2Drawable,
         ghostDrawable,
-        winDrawable
     ]
 }
